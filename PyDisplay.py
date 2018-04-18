@@ -1,13 +1,12 @@
+import argparse
 import os
 import time
 
 import pygame
 
-import Colors
 import Constants
-import Events
 import Controllers
-
+import Events
 import Pages
 
 
@@ -69,4 +68,11 @@ class PyDisplay(object):
 
 
 if __name__ == "__main__":
-    PyDisplay(on_pitft=True, enable_touchscreen=True, enable_button=True).run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--not_on_pitft", action='store_true', help="Don't run on piTFT screen?")
+    parser.add_argument("--disable_touchscreen", action='store_true', help="Don't usetouchscreen?")
+    parser.add_argument("--disable_button", action='store_true', help="Don't use buttons connected to GPIO pins?")
+
+    args = parser.parse_args()
+
+    PyDisplay(on_pitft=not args.not_on_pitft, enable_touchscreen=not args.disable_touchscreen, enable_button=not args.disable_button).run()
