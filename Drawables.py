@@ -69,11 +69,11 @@ class Button(Drawable):
 
     def enable(self, event_handler):
         super().enable(event_handler)
-        event_handler.register_event(self, Events.EventTypes.TOUCH_HOLD, self.event_callback)
+        event_handler.register_event(self, Events.EventTypes.TOUCH_DRAG, self.event_callback)
 
     def disable(self, event_handler):
         super().disable(event_handler)
-        event_handler.unregister_event(self, Events.EventTypes.TOUCH_HOLD)
+        event_handler.unregister_event(self, Events.EventTypes.TOUCH_DRAG)
 
     def draw(self, surface):
         super().draw(surface)
@@ -84,9 +84,9 @@ class Button(Drawable):
         surface.blit(text_surface, text_rect)
 
     def event_callback(self, event):
-        assert isinstance(event, Events.EventTouchHold)
+        assert isinstance(event, Events.EventTouchDrag)
 
-        if self._enabled and self._click_inside(event.position):
+        if self._enabled and event.no_movement and self._click_inside(event.position_end):
             self._callback(event)
 
     def _click_inside(self, pos):

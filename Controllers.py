@@ -1,10 +1,8 @@
-import threading
 import time
 
 import pygame
 import pygame.locals
 
-import Constants
 import Events
 
 
@@ -27,6 +25,10 @@ class TouchScreenController(Controller):
     def __init__(self, event_handler):
         super().__init__(event_handler)
 
+        self.down = False
+        self.down_positions = []
+        self.down_time = None
+
     def iteration(self):
         if not self._alive:
             return
@@ -34,21 +36,45 @@ class TouchScreenController(Controller):
         for event in pygame.event.get():
             if event.type is pygame.locals.MOUSEBUTTONDOWN:
                 print("MOUSEBUTTONDOWN!")
-                event = Events.EventTouchDown(pygame.mouse.get_pos())
+                pos = pygame.mouse.get_pos()
+
+                event = Events.EventTouchDown(pos)
                 self._event_handler.event_occurred(event)
-            elif event.type is pygame.locals.MOUSEBUTTONUP:
-                print("MOUSEBUTTONUP!")
-                event = Events.EventTouchUp(pygame.mouse.get_pos())
-                self._event_handler.event_occurred(event)
-                # TODO following line is just for testing
-                event = Events.EventTouchHold(pygame.mouse.get_pos(), 0.1)
-                self._event_handler.event_occurred(event)
+
+                self.down = True
+                self.down_positions = [pos]
+                self.down_time = time.time()
             elif event.type is pygame.locals.MOUSEMOTION:
+                if not self.down:
+                    continue
                 print("MOUSEMOTION!")
-                event = Events.EventTouchMotion(pygame.mouse.get_pos())
+                pos = pygame.mouse.get_pos()
+
+                event = Events.EventTouchMotion(pos)
                 self._event_handler.event_occurred(event)
-                # pos = pygame.mouse.get_pos()
-                # print(pos)
+                event = Events.EventTouchMovement(self.down_positions[-1], pos)
+                self._event_handler.event_occurred(event)
+
+                if self.down_positions[-1] != pos:
+                    self.down_positions.append(pos)
+            elif event.type is pygame.locals.MOUSEBUTTONUP:
+                if not self.down:
+                    continue
+                print("MOUSEBUTTONUP!")
+                pos = pygame.mouse.get_pos()
+
+                if self.down_positions[-1] != pos:
+                    self.down_positions.append(pos)
+                duration = time.time() - self.down_time
+
+                event = Events.EventTouchUp(pos)
+                self._event_handler.event_occurred(event)
+                event = Events.EventTouchDrag(self.down_positions, duration)
+                self._event_handler.event_occurred(event)
+
+                self.down = False
+                self.down_positions = []
+                self.down_time = None
 
 
 class ButtonController(Controller):

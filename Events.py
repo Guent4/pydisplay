@@ -1,28 +1,26 @@
 import inspect
 
+import Constants
+
 
 class EventTypes(object):
     TOUCH_DOWN = 0
     TOUCH_MOTION = 1
     TOUCH_UP = 2
 
-    TOUCH_HOLD = 3
-    # Marked by down, motion, and up being in around the same place
-    # Defined by position and hold duration (in seconds)
-
-    TOUCH_MOVEMENT = 4
+    TOUCH_MOVEMENT = 3
     # Marked by motion changing
     # Defined by previous position and new position
 
-    TOUCH_DRAG = 5
-    # Marked by down location and up location with no regard to motion in between
-    # Defined by down location and up location
+    TOUCH_DRAG = 4
+    # Created upon up
+    # Defined by all positions between down and up (inclusive) and duration
 
-    BUTTON_DOWN = 6
-    BUTTON_UP = 7
-    BUTTON_HOLD = 8
+    BUTTON_DOWN = 5
+    BUTTON_UP = 6
+    BUTTON_HOLD = 7
 
-    ALL = [TOUCH_DOWN, TOUCH_MOTION, TOUCH_UP, TOUCH_HOLD, TOUCH_MOVEMENT, TOUCH_DRAG, BUTTON_DOWN, BUTTON_UP, BUTTON_HOLD]
+    ALL = [TOUCH_DOWN, TOUCH_MOTION, TOUCH_UP, TOUCH_MOVEMENT, TOUCH_DRAG, BUTTON_DOWN, BUTTON_UP, BUTTON_HOLD]
 
     @staticmethod
     def is_valid_event_type(event_type):
@@ -52,13 +50,6 @@ class EventTouchUp(Event):
         self.position = position
 
 
-class EventTouchHold(Event):
-    def __init__(self, position, duration):
-        super().__init__(EventTypes.TOUCH_HOLD)
-        self.position = position
-        self.duration = duration
-
-
 class EventTouchMovement(Event):
     def __init__(self, position_old, position_new):
         super().__init__(EventTypes.TOUCH_MOVEMENT)
@@ -67,10 +58,14 @@ class EventTouchMovement(Event):
 
 
 class EventTouchDrag(Event):
-    def __init__(self, position_start, position_end):
+    def __init__(self, positions, duration):
         super().__init__(EventTypes.TOUCH_DRAG)
-        self.position_start = position_start
-        self.position_end = position_end
+        self.positions = positions
+        self.position_start = positions[0]
+        self.position_end = positions[-1]
+        xs = [x for x, _ in self.positions]
+        ys = [y for _, y in self.positions]
+        self.no_movement = (max(xs) - min(xs)) <= Constants.TOUCH_HOLD_TOLERANCE and (max(ys) - min(ys)) <= Constants.TOUCH_HOLD_TOLERANCE
 
 
 class EventButtonDown(Event):
