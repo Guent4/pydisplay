@@ -1,5 +1,7 @@
 import Colors
+import Controllers
 import Drawables
+import Events
 
 
 class Page(object):
@@ -61,5 +63,14 @@ class TempPage(Page):
         self.button = Drawables.Button(50, 50, 100, 50, "Hello", 3, Colors.WHITE, Colors.BLUE, callback=self.button_callback)
         self._drawables.append(self.button)
 
+        self._event_handler.register_event(object, Events.EventTypes.BUTTON_HOLD, self.button_27_callback)
+
     def button_callback(self, event):
         print("Button pressed!: {}".format(event))
+
+    def button_27_callback(self, event):
+        print(event.pin)
+        if event.pin != 27:
+            return
+
+        print("Button 27 pressed for {}!".format(event.duration))

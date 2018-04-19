@@ -32,14 +32,16 @@ class PyDisplay(object):
         # Start up EventHandler and the controllers
         self._event_handler = Events.EventHandler()
         self._touch_ctrl = Controllers.TouchScreenController(self._event_handler) if enable_touchscreen else None
-        self._button_ctrl = Controllers.ButtonController(self._event_handler) if enable_button else None
+        self._button_ctrl = None
+        if enable_button:
+            self._button_ctrl = Controllers.ButtonController(self._event_handler)
+            for pin in Constants.PI_TFT_BUTTON_PINS:
+                self._button_ctrl.add_physical_button(Controllers.PhysicalButton(pin, True))
 
         # TODO remove this!!! JUST FOR TESTING
         self.a = Pages.TempPage(self._event_handler)
         self.a.enable()
         self.a.visible = True
-
-        print("starting")
 
     def stop(self):
         self._alive = False
@@ -56,8 +58,8 @@ class PyDisplay(object):
                 pygame.display.flip()
 
                 # Handle controllers and their generated events
-                self._touch_ctrl.iteration()
-                self._button_ctrl.iteration()
+                if self._touch_ctrl is not None: self._touch_ctrl.iteration()
+                if self._button_ctrl is not None: self._button_ctrl.iteration()
                 self._event_handler.iteration()
 
                 # Sleep for the refresh interval
