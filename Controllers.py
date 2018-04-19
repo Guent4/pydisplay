@@ -33,18 +33,19 @@ class TouchScreenController(Controller):
 
         for event in pygame.event.get():
             if event.type is pygame.locals.MOUSEBUTTONDOWN:
-                print("MOUSEBUTTONDOWN!")
+                print("MOUSEBUTTONDOWN! {}".format(pygame.mouse.get_pos()))
+
                 event = Events.EventTouchDown(pygame.mouse.get_pos())
                 self._event_handler.event_occurred(event)
             elif event.type is pygame.locals.MOUSEBUTTONUP:
-                print("MOUSEBUTTONUP!")
+                print("MOUSEBUTTONUP! {}".format(pygame.mouse.get_pos()))
                 event = Events.EventTouchUp(pygame.mouse.get_pos())
                 self._event_handler.event_occurred(event)
                 # TODO following line is just for testing
                 event = Events.EventTouchHold(pygame.mouse.get_pos(), 0.1)
                 self._event_handler.event_occurred(event)
             elif event.type is pygame.locals.MOUSEMOTION:
-                print("MOUSEMOTION!")
+                print("MOUSEMOTION! {}".format(pygame.mouse.get_pos()))
                 event = Events.EventTouchMotion(pygame.mouse.get_pos())
                 self._event_handler.event_occurred(event)
                 # pos = pygame.mouse.get_pos()

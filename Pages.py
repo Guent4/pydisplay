@@ -58,7 +58,7 @@ class TempPage(Page):
     def __init__(self, event_handler):
         super().__init__(event_handler, Colors.BLACK)
 
-        self.button = Drawables.Button(50, 50, 100, 50, "Hello", 3, Colors.WHITE, Colors.BLUE, callback=self.button_callback)
+        self.button = Drawables.Button(50, 50, 100, 50, "Hello", 10, Colors.WHITE, Colors.BLUE, callback=self.button_callback)
         self._drawables.append(self.button)
 
     def button_callback(self, event):
