@@ -37,57 +37,33 @@ class Button(Drawable):
         self._top_left = (x, y)
         self._dim = (width, height)
         self._center = (x + width / 2, y + height / 2)
-        self._text = text
-        self._bg_color = bg_color
-        self._fg_color = fg_color
+        self.text = text
+        self.bg_color = bg_color
+        self.fg_color = fg_color
         self._my_font = pygame.font.Font(None, size)
-        self._callback = callback
-
-    @property
-    def text(self):
-        return self._text
-
-    @text.setter
-    def text(self, text):
-        self._text = text
-
-    @property
-    def bg_color(self):
-        return self._bg_color
-
-    @bg_color.setter
-    def bg_color(self, bg_color):
-        self._bg_color = bg_color
-
-    @property
-    def callback(self):
-        return self._callback
-
-    @callback.setter
-    def callback(self, callback):
-        self.event_callback(callback)
+        self.callback = callback
 
     def enable(self, event_handler):
         super().enable(event_handler)
-        event_handler.register_event(self, Events.EventTypes.TOUCH_HOLD, self.event_callback)
+        event_handler.register_event(self, Events.EventTypes.TOUCH_DRAG, self.event_callback)
 
     def disable(self, event_handler):
         super().disable(event_handler)
-        event_handler.unregister_event(self, Events.EventTypes.TOUCH_HOLD)
+        event_handler.unregister_event(self, Events.EventTypes.TOUCH_DRAG)
 
     def draw(self, surface):
         super().draw(surface)
         rect = (self._top_left[0], self._top_left[1], self._dim[0], self._dim[1])
-        pygame.draw.rect(surface, self._bg_color, rect)
-        text_surface = self._my_font.render(self._text, True, self._fg_color)
+        pygame.draw.rect(surface, self.bg_color, rect)
+        text_surface = self._my_font.render(self.text, True, self.fg_color)
         text_rect = text_surface.get_rect(center=self._center)
         surface.blit(text_surface, text_rect)
 
     def event_callback(self, event):
-        assert isinstance(event, Events.EventTouchHold)
+        assert isinstance(event, Events.EventTouchDrag)
 
-        if self._enabled and self._click_inside(event.position):
-            self._callback(event)
+        if self._enabled and event.no_movement and self._click_inside(event.position_end):
+            self.callback(event)
 
     def _click_inside(self, pos):
         """
