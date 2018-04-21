@@ -4,7 +4,11 @@ import Events
 
 
 class Drawable(object):
-    def __init__(self):
+    def __init__(self, x, y, width, height):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
         self._enabled = False
         self._visible = False
 
@@ -30,13 +34,14 @@ class Drawable(object):
         self._enabled = False
         pass
 
+    def move(self, dx, dy):
+        self.x += dx
+        self.y += dy
+
 
 class Button(Drawable):
     def __init__(self, x, y, width, height, text, size, bg_color, fg_color, callback=None):
-        super().__init__()
-        self._top_left = (x, y)
-        self._dim = (width, height)
-        self._center = (x + width / 2, y + height / 2)
+        super().__init__(x, y, width, height)
         self.text = text
         self.bg_color = bg_color
         self.fg_color = fg_color
@@ -53,10 +58,10 @@ class Button(Drawable):
 
     def draw(self, surface):
         super().draw(surface)
-        rect = (self._top_left[0], self._top_left[1], self._dim[0], self._dim[1])
+        rect = (self.x, self.y, self.width, self.height)
         pygame.draw.rect(surface, self.bg_color, rect)
         text_surface = self._my_font.render(self.text, True, self.fg_color)
-        text_rect = text_surface.get_rect(center=self._center)
+        text_rect = text_surface.get_rect(center=(self.x + self.width / 2, self.y + self.height / 2))
         surface.blit(text_surface, text_rect)
 
     def event_callback(self, event):
@@ -71,8 +76,8 @@ class Button(Drawable):
         :param pos: a (x, y) coordinate
         :returns: True if pos inside button, False otherwise
         """
-        left = self._top_left[0]
-        right = self._top_left[0] + self._dim[0]
-        top = self._top_left[1]
-        bottom = self._top_left[1] + self._dim[1]
+        left = self.x
+        right = self.x + self.width
+        top = self.y
+        bottom = self.y + self.height
         return left <= pos[0] <= right and top <= pos[1] <= bottom

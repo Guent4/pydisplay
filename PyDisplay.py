@@ -54,6 +54,7 @@ class PyDisplay(object):
     def run(self):
         try:
             while self._alive:
+                start_time = time.time()
                 self.a.draw(self.surface)
                 pygame.display.flip()
 
@@ -63,7 +64,7 @@ class PyDisplay(object):
                 self._event_handler.iteration()
 
                 # Sleep for the refresh interval
-                time.sleep(Constants.REFRESH_INTERVAL)
+                time.sleep(max(0, Constants.REFRESH_INTERVAL - (time.time() - start_time)))
 
         finally:
             self.stop()
