@@ -12,10 +12,6 @@ class Drawable(object):
         self._enabled = False
         self._visible = False
 
-    def draw(self, surface):
-        if not self._visible:
-            return
-
     @property
     def visible(self):
         return self._visible
@@ -34,9 +30,16 @@ class Drawable(object):
         self._enabled = False
         pass
 
+    def draw(self, surface):
+        if not self._visible:
+            return
+
     def move(self, dx, dy):
         self.x += dx
         self.y += dy
+
+    def position_inside(self, position):
+        raise NotImplementedError
 
 
 class Button(Drawable):
@@ -69,10 +72,10 @@ class Button(Drawable):
     def event_callback(self, event):
         assert isinstance(event, Events.EventTouchDrag)
 
-        if self._enabled and event.no_movement and self._click_inside(event.position_end):
+        if self._enabled and event.no_movement and self.position_inside(event.position_end):
             self.callback(event, *self.args)
 
-    def _click_inside(self, pos):
+    def position_inside(self, pos):
         """
         Given a (x, y), see if inside the button.
         :param pos: a (x, y) coordinate

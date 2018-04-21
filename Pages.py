@@ -74,7 +74,8 @@ class Page(object):
 
     def _scroll(self, event):
         assert isinstance(event, Events.EventTouchMovement)
-        if not self._position_inside_page_on_screen(event.position_start) or event.no_movement:
+        if not self._position_inside_page_on_screen(event.position_start) or event.no_movement or any(
+                [drawable.position_inside(event.position_start) for drawable in self._drawables]):
             return
 
         dx = event.position_new[0] - event.position_old[0]
