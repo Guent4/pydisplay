@@ -6,6 +6,7 @@ import pygame
 
 import Constants
 import Controllers
+import Demo
 import Events
 import Pages
 
@@ -39,9 +40,8 @@ class PyDisplay(object):
                 self._button_ctrl.add_physical_button(Controllers.PhysicalButton(pin, True))
 
         # TODO remove this!!! JUST FOR TESTING
-        self.a = Pages.TempPage(self._event_handler)
-        self.a.enable()
-        self.a.visible = True
+        pages = [Demo.TempPage1(self._event_handler), Demo.TempPage2(self._event_handler)]
+        self.page_manager = Pages.PageManager(self._event_handler, pages, Pages.PageManager.SWITCHER_LOCATIONS["BOTTOM"])
 
     def stop(self):
         self._alive = False
@@ -55,7 +55,7 @@ class PyDisplay(object):
         try:
             while self._alive:
                 start_time = time.time()
-                self.a.draw(self.surface)
+                self.page_manager.draw(self.surface)
                 pygame.display.flip()
 
                 # Handle controllers and their generated events

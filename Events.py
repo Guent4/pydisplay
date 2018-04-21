@@ -55,12 +55,17 @@ class EventTouchUp(Event):
 
 
 class EventTouchMovement(Event):
-    def __init__(self, position_old, position_new):
+    def __init__(self, position_old, position_new, position_start):
         super().__init__(EventTypes.TOUCH_MOVEMENT)
         assert isinstance(position_old, tuple) and len(position_old) == 2 and all([isinstance(v, int) for v in position_old])
         assert isinstance(position_new, tuple) and len(position_new) == 2 and all([isinstance(v, int) for v in position_new])
+        assert isinstance(position_start, tuple) and len(position_start) == 2 and all([isinstance(v, int) for v in position_start])
         self.position_old = position_old
         self.position_new = position_new
+        self.position_start = position_start
+        dx = abs(position_new[0] - position_old[0])
+        dy = abs(position_new[1] - position_old[1])
+        self.no_movement = dx <= Constants.TOUCH_HOLD_TOLERANCE and dy <= Constants.TOUCH_HOLD_TOLERANCE
 
 
 class EventTouchDrag(Event):
@@ -103,6 +108,7 @@ class EventHandler(object):
         self._alive = True
         self._event_listeners = {event_type: dict() for event_type in EventTypes.ALL}
         self._unregister_list = []
+        self._register_list = []
 
     def stop(self):
         self._alive = False
@@ -111,23 +117,27 @@ class EventHandler(object):
         if not self._alive:
             return
 
-    def register_event(self, object, event_type, callback):
+    def register_event(self, obj, event_type, callback):
         assert EventTypes.is_valid_event_type(event_type)
         assert len(inspect.getfullargspec(callback).args) == 2
 
-        self._event_listeners[event_type][object] = callback
+        self._register_list.append((obj, event_type, callback))
 
-    def unregister_event(self, object, event_type):
+    def unregister_event(self, obj, event_type):
         assert EventTypes.is_valid_event_type(event_type)
 
-        self._unregister_list.append((object, event_type))
+        self._unregister_list.append((obj, event_type))
 
     def event_occurred(self, event):
         assert isinstance(event, Event)
 
-        for object, event_type in self._unregister_list:
-            if object in self._event_listeners[event_type]:
-                del self._event_listeners[event_type][object]
+        for obj, event_type, callback in self._register_list:
+            self._event_listeners[event_type][obj] = callback
+        self._register_list = []
+
+        for obj, event_type in self._unregister_list:
+            if obj in self._event_listeners[event_type]:
+                del self._event_listeners[event_type][obj]
         self._unregister_list = []
 
         for _, callback in self._event_listeners[event.event_type].items():

@@ -40,13 +40,15 @@ class Drawable(object):
 
 
 class Button(Drawable):
-    def __init__(self, x, y, width, height, text, size, bg_color, fg_color, callback=None):
+    def __init__(self, x, y, width, height, text, size, bg_color, fg_color, callback=None, args=None):
+        assert args is None or isinstance(args, list)
         super().__init__(x, y, width, height)
         self.text = text
         self.bg_color = bg_color
         self.fg_color = fg_color
         self._my_font = pygame.font.Font(None, size)
         self.callback = callback
+        self.args = args if args is not None else []
 
     def enable(self, event_handler):
         super().enable(event_handler)
@@ -68,7 +70,7 @@ class Button(Drawable):
         assert isinstance(event, Events.EventTouchDrag)
 
         if self._enabled and event.no_movement and self._click_inside(event.position_end):
-            self.callback(event)
+            self.callback(event, *self.args)
 
     def _click_inside(self, pos):
         """
