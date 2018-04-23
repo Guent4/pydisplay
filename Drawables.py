@@ -32,12 +32,14 @@ class Drawable(object):
 
 
 class Button(Drawable):
-    def __init__(self, x, y, width, height, text, size, bg_color, fg_color, callback=None):
+    def __init__(self, x, y, width, height, text, size, bg_color, fg_color, callback=None, shape=1):
         super().__init__()
         self._top_left = (x, y)
         self._dim = (width, height)
+        self.radius = width     # for circle button width becomes the radius.
         self._center = (x + width / 2, y + height / 2)
         self.text = text
+        self.shape = shape      # 0 = circle button
         self.bg_color = bg_color
         self.fg_color = fg_color
         self._my_font = pygame.font.Font(None, size)
@@ -53,11 +55,17 @@ class Button(Drawable):
 
     def draw(self, surface):
         super().draw(surface)
-        rect = (self._top_left[0], self._top_left[1], self._dim[0], self._dim[1])
-        pygame.draw.rect(surface, self.bg_color, rect)
-        text_surface = self._my_font.render(self.text, True, self.fg_color)
-        text_rect = text_surface.get_rect(center=self._center)
-        surface.blit(text_surface, text_rect)
+        if self.shape == 0:
+            pygame.draw.circle(surface, self.bg_color, self._top_left, self.radius)
+            text_surface = self._my_font.render(self.text, True, self.fg_color)
+            text_rect = text_surface.get_rect(center=self._top_left)
+            surface.blit(text_surface, text_rect)
+        else:
+            rect = (self._top_left[0], self._top_left[1], self._dim[0], self._dim[1])
+            pygame.draw.rect(surface, self.bg_color, rect)
+            text_surface = self._my_font.render(self.text, True, self.fg_color)
+            text_rect = text_surface.get_rect(center=self._center)
+            surface.blit(text_surface, text_rect)
 
     def event_callback(self, event):
         assert isinstance(event, Events.EventTouchDrag)
@@ -71,8 +79,32 @@ class Button(Drawable):
         :param pos: a (x, y) coordinate
         :returns: True if pos inside button, False otherwise
         """
-        left = self._top_left[0]
-        right = self._top_left[0] + self._dim[0]
-        top = self._top_left[1]
-        bottom = self._top_left[1] + self._dim[1]
-        return left <= pos[0] <= right and top <= pos[1] <= bottom
+        if self.shape == 0:
+            distance = ((pos[1] - self._top_left[1]) ** (2) + (pos[0] - self._top_left[0]) ** (2)) ** (0.5)
+            return distance <= self.radius
+        else:
+            left = self._top_left[0]
+            right = self._top_left[0] + self._dim[0]
+            top = self._top_left[1]
+            bottom = self._top_left[1] + self._dim[1]
+            return left <= pos[0] <= right and top <= pos[1] <= bottom
+
+
+class TextBox(Drawable):
+    def __init__(self, x, y, width, height, text, size, bg_color, fg_color):
+        super().__init__()
+        self._top_left = (x, y)
+        self._dim = (width, height)
+        self._center = (x + width / 2, y + height / 2)
+        self.text = text
+        self.bg_color = bg_color
+        self.fg_color = fg_color
+        self._my_font = pygame.font.Font(None, size)
+
+    def draw(self, surface):
+        super().draw(surface)
+        rect = (self._top_left[0], self._top_left[1], self._dim[0], self._dim[1])
+        pygame.draw.rect(surface, self.bg_color, rect)
+        text_surface = self._my_font.render(self.text, True, self.fg_color)
+        text_rect = text_surface.get_rect(center=self._center)
+        surface.blit(text_surface, text_rect)
