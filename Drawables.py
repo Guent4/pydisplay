@@ -4,13 +4,13 @@ import Events
 
 
 class Drawable(object):
-    def __init__(self):
+    def __init__(self, x, y, width, height):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
         self._enabled = False
         self._visible = False
-
-    def draw(self, surface):
-        if not self._visible:
-            return
 
     @property
     def visible(self):
@@ -30,9 +30,21 @@ class Drawable(object):
         self._enabled = False
         pass
 
+    def draw(self, surface):
+        if not self._visible:
+            return
+
+    def move(self, dx, dy):
+        self.x += dx
+        self.y += dy
+
+    def position_inside(self, position):
+        raise NotImplementedError
+
 
 class Button(Drawable):
-    def __init__(self, x, y, width, height, text, size, bg_color, fg_color, callback=None, shape=1):
+    def __init__(self, x, y, width, height, text, size, bg_color, fg_color, callback=None, shape=1, args=None):
+        assert args is None or isinstance(args, list)
         super().__init__()
         self._top_left = (x, y)
         self._dim = (width, height)
@@ -44,6 +56,7 @@ class Button(Drawable):
         self.fg_color = fg_color
         self._my_font = pygame.font.Font(None, size)
         self.callback = callback
+        self.args = args if args is not None else []
 
     def enable(self, event_handler):
         super().enable(event_handler)
@@ -70,10 +83,10 @@ class Button(Drawable):
     def event_callback(self, event):
         assert isinstance(event, Events.EventTouchDrag)
 
-        if self._enabled and event.no_movement and self._click_inside(event.position_end):
-            self.callback(event)
+        if self._enabled and event.no_movement and self.position_inside(event.position_end):
+            self.callback(event, *self.args)
 
-    def _click_inside(self, pos):
+    def position_inside(self, pos):
         """
         Given a (x, y), see if inside the button.
         :param pos: a (x, y) coordinate

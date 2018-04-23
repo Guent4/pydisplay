@@ -57,7 +57,7 @@ class TouchScreenController(Controller):
                 pos = pygame.mouse.get_pos()
 
                 self._event_handler.event_occurred(Events.EventTouchMotion(pos))
-                self._event_handler.event_occurred(Events.EventTouchMovement(self.down_positions[-1], pos))
+                self._event_handler.event_occurred(Events.EventTouchMovement(self.down_positions[-1], pos, self.down_positions[0]))
 
                 if self.down_positions[-1] != pos:
                     self.down_positions.append(pos)
