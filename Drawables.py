@@ -45,7 +45,7 @@ class Drawable(object):
 class Button(Drawable):
     def __init__(self, x, y, width, height, text, size, bg_color, fg_color, callback=None, shape=1, args=None):
         assert args is None or isinstance(args, list)
-        super().__init__()
+        super().__init__(x, y, width, height)
         self._top_left = (x, y)
         self._dim = (width, height)
         self.radius = width     # for circle button width becomes the radius.
@@ -104,8 +104,8 @@ class Button(Drawable):
 
 
 class TextBox(Drawable):
-    def __init__(self, x, y, width, height, text, size, bg_color, fg_color):
-        super().__init__()
+    def __init__(self, x, y, width, height, text, size, bg_color, fg_color, align="center"):
+        super().__init__(x, y, width, height)
         self._top_left = (x, y)
         self._dim = (width, height)
         self._center = (x + width / 2, y + height / 2)
@@ -113,11 +113,28 @@ class TextBox(Drawable):
         self.bg_color = bg_color
         self.fg_color = fg_color
         self._my_font = pygame.font.Font(None, size)
+        self._align = align == "left"
+
+    def enable(self, event_handler):
+        super().enable(event_handler)
+
+    def disable(self, event_handler):
+        super().disable(event_handler)
 
     def draw(self, surface):
         super().draw(surface)
-        rect = (self._top_left[0], self._top_left[1], self._dim[0], self._dim[1])
-        pygame.draw.rect(surface, self.bg_color, rect)
-        text_surface = self._my_font.render(self.text, True, self.fg_color)
-        text_rect = text_surface.get_rect(center=self._center)
-        surface.blit(text_surface, text_rect)
+        if self._align == 1:
+            rect = (self._top_left[0], self._top_left[1], self._dim[0], self._dim[1])
+            pygame.draw.rect(surface, self.bg_color, rect)
+            text_surface = self._my_font.render(self.text, True, self.fg_color)
+            text_rect = text_surface.get_rect(left=self._top_left[0], centery=self._center[1])
+            surface.blit(text_surface, text_rect)
+        else:
+            rect = (self._top_left[0], self._top_left[1], self._dim[0], self._dim[1])
+            pygame.draw.rect(surface, self.bg_color, rect)
+            text_surface = self._my_font.render(self.text, True, self.fg_color)
+            text_rect = text_surface.get_rect(center = self._center)
+            surface.blit(text_surface, text_rect)
+
+    def position_inside(self, position):
+        raise NotImplementedError
