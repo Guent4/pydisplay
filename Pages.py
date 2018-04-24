@@ -6,7 +6,6 @@ import Events
 
 class Page(object):
     def __init__(self, event_handler, page_name, page_size=Constants.PI_TFT_SCREEN_SIZE, bg_color=Colors.BLACK):
-        assert isinstance(event_handler, Events.EventHandler)
         assert isinstance(page_size, tuple) and len(page_size) == 2
         assert Colors.is_color(bg_color)
 
@@ -24,7 +23,15 @@ class Page(object):
         self._visible = False
 
         self._location_on_page = (0, 0)                     # This is what is displayed on the screen w.r.t. the page
-        self._event_handler.register_event(self, Events.EventTypes.TOUCH_MOVEMENT, self._scroll)
+
+    @property
+    def event_handler(self):
+        return self._event_handler
+
+    @event_handler.setter
+    def event_handler(self, event_handler):
+        assert isinstance(event_handler, Events.EventHandler)
+        self._event_handler = event_handler
 
     @property
     def drawables(self):
@@ -52,14 +59,16 @@ class Page(object):
     def enable(self):
         self._enabled = True
 
-        self._event_handler.register_event(self, Events.EventTypes.TOUCH_MOVEMENT, self._scroll)
+        if self.scrollable:
+            self._event_handler.register_event(self, Events.EventTypes.TOUCH_MOVEMENT, self._scroll)
         for drawable in self._drawables:
             drawable.enable(self._event_handler)
 
     def disable(self):
         self._enabled = False
 
-        self._event_handler.unregister_event(self, Events.EventTypes.TOUCH_MOVEMENT)
+        if self.scrollable:
+            self._event_handler.unregister_event(self, Events.EventTypes.TOUCH_MOVEMENT)
         for drawable in self._drawables:
             drawable.disable(self._event_handler)
 
@@ -119,6 +128,11 @@ class PageManager(object):
         self.switcher_location = switcher_location
         self.switcher_pages = [(i, page) for i, page in enumerate(self.pages)]
 
+        # Make sure all pages have an event_handler
+        for page in pages:
+            page.event_handler = self._event_handler
+
+        # Create the switcher
         self.switcher_drawables = []
         if self.switcher_location != PageManager.SWITCHER_LOCATIONS["NONE"]:
             at_top = self.switcher_location == PageManager.SWITCHER_LOCATIONS["TOP"]
