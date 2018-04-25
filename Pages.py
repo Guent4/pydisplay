@@ -25,15 +25,6 @@ class Page(object):
         self._location_on_page = (0, 0)                     # This is what is displayed on the screen w.r.t. the page
 
     @property
-    def event_handler(self):
-        return self._event_handler
-
-    @event_handler.setter
-    def event_handler(self, event_handler):
-        assert isinstance(event_handler, Events.EventHandler)
-        self._event_handler = event_handler
-
-    @property
     def drawables(self):
         return self._drawables
 
