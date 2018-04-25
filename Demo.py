@@ -9,8 +9,8 @@ class TempPage1(Pages.Page):
         super().__init__(event_handler, "temp1", (400, 300), Colors.BLACK)
 
         self.button = Drawables.Button(50, 50, 100, 50, "Hello", 25, Colors.WHITE, Colors.BLUE, callback=self.button_callback)
-        self.textBox = Drawables.TextBox(50, 110, 100, 50, "textbox here", 15, Colors.CYAN, Colors.BLACK)
-        self.textBox2 = Drawables.TextBox(200, 50, 100, 50, "textbox here", 15, Colors.CYAN, Colors.BLACK, align="left")
+        self.textBox = Drawables.TextBox(50, 110, 100, 50, "textbox here", 15, Colors.CYAN, Colors.RED, "right", "center")
+        self.textBox2 = Drawables.TextBox(200, 50, 100, 50, "textbox here", 15, Colors.CYAN, Colors.WHITE, "right", "top")
         self._drawables.append(self.button)
         self._drawables.append(self.textBox)
         self._drawables.append(self.textBox2)
