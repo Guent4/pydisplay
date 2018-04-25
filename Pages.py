@@ -1,3 +1,5 @@
+import pygame
+
 import Colors
 import Constants
 import Drawables
@@ -206,3 +208,6 @@ class PageManager(object):
 
         for drawable in self.switcher_drawables:
             drawable.draw(surface)
+
+        top = 0 if self.switcher_location == PageManager.SWITCHER_LOCATIONS["TOP"] else (Constants.PI_TFT_SCREEN_SIZE[1] - PageManager.SWITCHER_HEIGHT)
+        pygame.draw.line(surface, Colors.WHITE, (0, top), (Constants.PI_TFT_SCREEN_SIZE[0], top), 1)

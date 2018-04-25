@@ -39,7 +39,7 @@ class Drawable(object):
         self.y += dy
 
     def position_inside(self, position):
-        raise NotImplementedError
+        pass
 
 
 class Button(Drawable):
@@ -104,16 +104,24 @@ class Button(Drawable):
 
 
 class TextBox(Drawable):
-    def __init__(self, x, y, width, height, text, size, bg_color, fg_color, align="center"):
+    ALIGN_CENTER = 0
+    ALIGN_LEFT = 1
+    ALIGN_RIGHT = 2
+    ALIGN_TOP = 1
+    ALIGN_BOTTOM = 2
+
+    def __init__(self, x, y, width, height, text, size, bg_color, fg_color, align_x=ALIGN_CENTER, align_y=ALIGN_CENTER):
         super().__init__(x, y, width, height)
-        self._top_left = (x, y)
-        self._dim = (width, height)
-        self._center = (x + width / 2, y + height / 2)
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
         self.text = text
         self.bg_color = bg_color
         self.fg_color = fg_color
         self._my_font = pygame.font.Font(None, size)
-        self._align = align == "left"
+        self._align_x = align_x
+        self._align_y = align_y
 
     def enable(self, event_handler):
         super().enable(event_handler)
@@ -123,18 +131,24 @@ class TextBox(Drawable):
 
     def draw(self, surface):
         super().draw(surface)
-        if self._align == 1:
-            rect = (self._top_left[0], self._top_left[1], self._dim[0], self._dim[1])
-            pygame.draw.rect(surface, self.bg_color, rect)
+        if self._align_x == TextBox.ALIGN_CENTER:
+            # TODO fix this
+            # rect = (self.x, self.y, self.width, self.height)
+            # pygame.draw.rect(surface, self.bg_color, rect)
             text_surface = self._my_font.render(self.text, True, self.fg_color)
-            text_rect = text_surface.get_rect(left=self._top_left[0], centery=self._center[1])
+            text_rect = text_surface.get_rect(center=[self.x, self.y])
             surface.blit(text_surface, text_rect)
+        elif self._align_x == TextBox.ALIGN_LEFT:
+            # TODO fix this
+            # rect = (self.x, self.y, self.width, self.height)
+            # pygame.draw.rect(surface, self.bg_color, rect)
+            text_surface = self._my_font.render(self.text, True, self.fg_color)
+            text_rect = text_surface.get_rect(left=self.x, centery=self.y)
+            surface.blit(text_surface, text_rect)
+        elif self._align_x == TextBox.ALIGN_RIGHT:
+            raise NotImplemented
         else:
-            rect = (self._top_left[0], self._top_left[1], self._dim[0], self._dim[1])
-            pygame.draw.rect(surface, self.bg_color, rect)
-            text_surface = self._my_font.render(self.text, True, self.fg_color)
-            text_rect = text_surface.get_rect(center = self._center)
-            surface.blit(text_surface, text_rect)
+            raise Exception
 
     def position_inside(self, position):
-        raise NotImplementedError
+        pass
