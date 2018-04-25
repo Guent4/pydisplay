@@ -1,7 +1,10 @@
+import argparse
+
 import Colors
 import Drawables
 import Events
 import Pages
+import PyDisplay
 
 
 class TempPage1(Pages.Page):
@@ -46,3 +49,18 @@ class TempPage2(Pages.Page):
             return
 
         print("Button 27 pressed for {}!".format(event.duration))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--not_on_pitft", action='store_true', help="Don't run on piTFT screen?")
+    parser.add_argument("--disable_touchscreen", action='store_true', help="Don't usetouchscreen?")
+    parser.add_argument("--disable_button", action='store_true', help="Don't use buttons connected to GPIO pins?")
+
+    args = parser.parse_args()
+
+    page_classes = [TempPage1, TempPage2]
+    page_class_args = [[], []]
+    pydisplay = PyDisplay.PyDisplay(not args.not_on_pitft, not args.disable_touchscreen, not args.disable_button)
+    pydisplay.setup_pages(page_classes, page_class_args, Pages.PageManager.SWITCHER_LOCATIONS["BOTTOM"])
+    pydisplay.run()

@@ -1,4 +1,3 @@
-import argparse
 import os
 import time
 
@@ -6,7 +5,6 @@ import pygame
 
 import Constants
 import Controllers
-import Demo
 import Events
 import Pages
 
@@ -39,9 +37,16 @@ class PyDisplay(object):
             for pin in Constants.PI_TFT_BUTTON_PINS:
                 self._button_ctrl.add_physical_button(Controllers.PhysicalButton(pin, True))
 
-        # TODO remove this!!! JUST FOR TESTING
-        pages = [Demo.TempPage1(self._event_handler), Demo.TempPage2(self._event_handler)]
-        self.page_manager = Pages.PageManager(self._event_handler, pages, Pages.PageManager.SWITCHER_LOCATIONS["BOTTOM"])
+        # At this point, we don't have pages so can't create a page manager
+        self.page_manager = None
+
+    def setup_pages(self, page_classes, page_class_args, page_manager_location):
+        assert len(page_classes) > 0
+        assert len(page_classes) == len(page_class_args)
+
+        # PageManager is responsible for all of the pages including displaying the pages and switching between pages
+        pages = [cls(self._event_handler, *arg) for cls, arg in zip(page_classes, page_class_args)]
+        self.page_manager = Pages.PageManager(self._event_handler, pages, page_manager_location)
 
     def stop(self):
         self._alive = False
@@ -55,7 +60,8 @@ class PyDisplay(object):
         try:
             while self._alive:
                 start_time = time.time()
-                self.page_manager.draw(self.surface)
+                if self.page_manager is not None:
+                    self.page_manager.draw(self.surface)
                 pygame.display.flip()
 
                 # Handle controllers and their generated events
@@ -68,14 +74,3 @@ class PyDisplay(object):
 
         finally:
             self.stop()
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--not_on_pitft", action='store_true', help="Don't run on piTFT screen?")
-    parser.add_argument("--disable_touchscreen", action='store_true', help="Don't usetouchscreen?")
-    parser.add_argument("--disable_button", action='store_true', help="Don't use buttons connected to GPIO pins?")
-
-    args = parser.parse_args()
-
-    PyDisplay(on_pitft=not args.not_on_pitft, enable_touchscreen=not args.disable_touchscreen, enable_button=not args.disable_button).run()
