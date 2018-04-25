@@ -39,7 +39,7 @@ class Drawable(object):
         self.y += dy
 
     def position_inside(self, position):
-        raise NotImplementedError
+        pass
 
 
 class Button(Drawable):
@@ -106,9 +106,10 @@ class Button(Drawable):
 class TextBox(Drawable):
     def __init__(self, x, y, width, height, text, size, bg_color, fg_color, x_align, y_align, rotate=0):
         super().__init__(x, y, width, height)
-        self._top_left = (x, y)
-        self._dim = (width, height)
-        self._center = (x + width / 2, y + height / 2)
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
         self.text = text
         self.bg_color = bg_color
         self.fg_color = fg_color
@@ -178,4 +179,4 @@ class TextBox(Drawable):
             return text_surface.get_rect(center=self._center)
 
     def position_inside(self, position):
-        raise NotImplementedError
+        pass
