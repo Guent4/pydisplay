@@ -46,10 +46,8 @@ class Button(Drawable):
     def __init__(self, x, y, width, height, text, size, bg_color, fg_color, callback=None, shape=1, args=None):
         assert args is None or isinstance(args, list)
         super().__init__(x, y, width, height)
-        self._top_left = (x, y)
-        self._dim = (width, height)
         self.radius = width     # for circle button width becomes the radius.
-        self._center = (x + width / 2, y + height / 2)
+        self._center = (self.x + width / 2, self.y + height / 2)
         self.text = text
         self.shape = shape      # 0 = circle button
         self.bg_color = bg_color
@@ -69,15 +67,15 @@ class Button(Drawable):
     def draw(self, surface):
         super().draw(surface)
         if self.shape == 0:
-            pygame.draw.circle(surface, self.bg_color, self._top_left, self.radius)
+            pygame.draw.circle(surface, self.bg_color, (self.x, self.y), self.radius)
             text_surface = self._my_font.render(self.text, True, self.fg_color)
-            text_rect = text_surface.get_rect(center=self._top_left)
+            text_rect = text_surface.get_rect(center=(self.x, self.y))
             surface.blit(text_surface, text_rect)
         else:
-            rect = (self._top_left[0], self._top_left[1], self._dim[0], self._dim[1])
+            rect = (self.x, self.y, self.width, self.height)
             pygame.draw.rect(surface, self.bg_color, rect)
             text_surface = self._my_font.render(self.text, True, self.fg_color)
-            text_rect = text_surface.get_rect(center=self._center)
+            text_rect = text_surface.get_rect(center=(self.x + self.width / 2, self.y + self.height / 2))
             surface.blit(text_surface, text_rect)
 
     def event_callback(self, event):
@@ -93,21 +91,19 @@ class Button(Drawable):
         :returns: True if pos inside button, False otherwise
         """
         if self.shape == 0:
-            distance = ((pos[1] - self._top_left[1]) ** (2) + (pos[0] - self._top_left[0]) ** (2)) ** (0.5)
+            distance = ((pos[1] - self.y) ** (2) + (pos[0] - self.x) ** (2)) ** (0.5)
             return distance <= self.radius
         else:
-            left = self._top_left[0]
-            right = self._top_left[0] + self._dim[0]
-            top = self._top_left[1]
-            bottom = self._top_left[1] + self._dim[1]
+            left = self.x
+            right = self.x + self.width
+            top = self.y
+            bottom = self.y + self.height
             return left <= pos[0] <= right and top <= pos[1] <= bottom
 
 
 class TextBox(Drawable):
     def __init__(self, x, y, width, height, text, size, bg_color, fg_color, x_align, y_align, rotate=0):
         super().__init__(x, y, width, height)
-        self.x = x
-        self.y = y
         self.width = width
         self.height = height
         self.text = text
@@ -118,27 +114,21 @@ class TextBox(Drawable):
         self._rotate = rotate
 
     def set_align(self, x_align, y_align):
+        dict = {}
         if x_align == "left":
-            if y_align == "top":
-                return 1
-            elif y_align == "bottom":
-                return 2
-            else:
-                return 3
+            dict['left'] = self.x
         elif x_align == "right":
-            if y_align == "top":
-                return 4
-            elif y_align == "bottom":
-                return 5
-            else:
-                return 6
+            dict['right'] = self.x + self.width
         else:
-            if y_align == "top":
-                return 7
-            elif y_align == "bottom":
-                return 8
-            else:
-                return 9
+            dict['centerx'] = self.x + self.width/2
+
+        if y_align == "top":
+            dict['top'] = self.y
+        elif y_align == "bottom":
+            dict['bottom'] = self.y + self.height
+        else:
+            dict['centery'] = self.y + self.height/2
+        return dict
 
     def enable(self, event_handler):
         super().enable(event_handler)
@@ -148,35 +138,20 @@ class TextBox(Drawable):
 
     def draw(self, surface):
         super().draw(surface)
-        # rect = (self._top_left[0], self._top_left[1], self._dim[0], self._dim[1])
-        # pygame.draw.rect(surface, self.bg_color, rect)
+        if (self._rotate % 90) == 0:
+            if ((self._rotate / 90) % 2) == 0:
+                rect = (self.x, self.y, self.width, self.height)
+            else:
+                rect = (self.x, self.y, self.height, self.width)
+
+            pygame.draw.rect(surface, self.bg_color, rect)
         text_surface = self._my_font.render(self.text, True, self.fg_color)
         text_surface = pygame.transform.rotate(text_surface, self._rotate)
-        text_rect = self.set_text_rect(text_surface,self._align)
+        text_rect = text_surface.get_rect(**self._align)
         surface.blit(text_surface, text_rect)
 
     # def rotate_rect(self, rect, ):
 
-
-    def set_text_rect(self,text_surface, align):
-        if align == 1:
-            return text_surface.get_rect(topleft=self._top_left)
-        elif align == 2:
-            return text_surface.get_rect(left=self._top_left[0], bottom=(self._top_left[1]+self.height))
-        elif align == 3:
-            return text_surface.get_rect(left=self._top_left[0], centery=self._center[1])
-        elif align == 4:
-            return text_surface.get_rect(right=(self._top_left[0] + self.width), top=self._top_left[1])
-        elif align == 5:
-            return text_surface.get_rect(right=(self._top_left[0] + self.width), bottom=(self._top_left[1]+self.height))
-        elif align == 6:
-            return text_surface.get_rect(right=(self._top_left[0] + self.width), centery=self._center[1])
-        elif align == 7:
-            return text_surface.get_rect(centerx=self._center[0], top=self._top_left[1])
-        elif align == 8:
-            return text_surface.get_rect(centerx=self._center[0], bottom=(self._top_left[1]+self.height))
-        else:
-            return text_surface.get_rect(center=self._center)
 
     def position_inside(self, position):
         pass

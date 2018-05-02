@@ -17,11 +17,36 @@ class TempPage1(Pages.Page):
         self.scatter = Graphs.Scatter(0, 0, *self.page_size)
         self.scatter.set_title("TEST")
         self.scatter.set_x_label("x axis")
+        self.scatter.set_y_label("y axis")
         self.scatter.create_plot()
         self.scatter.add_dataset("test", [0, 1, 2, 3, -1, -2, -3], [0, 1, 2, 3, -1, -2, -3])
         # self.scatter.setup_new_data_source("test", TempPage1._new_data_from_fifo)
 
+        self.line = Graphs.Line(0, 0, *self.page_size)
+        self.line.set_title("TEST")
+        self.line.set_x_label("x axis")
+        self.line.set_y_label("y axis")
+        self.line.create_plot()
+        self.line.add_dataset("test", [0, 1, 2, 3, -1, -2, -3], [1, 2, 3, 4, 0, -1, -2], color=Colors.RED)
+
+        self.line2 = Graphs.Line(0, 0, *self.page_size)
+        self.line2.set_title("TEST")
+        self.line2.set_x_label("x axis")
+        self.line2.set_y_label("y axis")
+        self.line2.create_plot()
+        self.line2.add_dataset("test", [0, -1, -2, -3, 1, 2, 3], [1, 2, 3, 4, 0, -1, -2], color=Colors.RED)
+
+        self.bar = Graphs.Bar(0, 0, *self.page_size)
+        self.bar.set_title("TEST")
+        self.bar.set_x_label("x axis")
+        self.bar.set_y_label("y axis")
+        self.bar.create_plot()
+        self.bar.add_dataset("test", [0, 1, 2, 3, -1, -2, -3], [0, 1, 2, 3, -1, -2, -3], color=Colors.BLUE)
+
         self._drawables.append(self.scatter)
+        self._drawables.append(self.line)
+        self._drawables.append(self.line2)
+        self._drawables.append(self.bar)
 
     @staticmethod
     def _new_data_from_fifo(graph, fifo_source, data):
@@ -37,8 +62,8 @@ class TempPage2(Pages.Page):
         super().__init__(event_handler, "temp1", (400, 300), Colors.BLACK)
 
         self.button = Drawables.Button(50, 50, 100, 50, "Hello", 25, Colors.WHITE, Colors.BLUE, callback=self.button_callback)
-        self.textBox = Drawables.TextBox(50, 110, 100, 50, "textbox here", 15, Colors.CYAN, Colors.RED, "right", "center")
-        self.textBox2 = Drawables.TextBox(200, 50, 100, 50, "textbox here", 15, Colors.CYAN, Colors.WHITE, "right", "top")
+        self.textBox = Drawables.TextBox(50, 110, 100, 50, "textbox here", 15, Colors.CYAN, Colors.RED, "center", "center", rotate = 90)
+        self.textBox2 = Drawables.TextBox(200, 100, 100, 50, "textbox here", 15, Colors.CYAN, Colors.WHITE, "right", "top")
         self._drawables.append(self.button)
         self._drawables.append(self.textBox)
         self._drawables.append(self.textBox2)
