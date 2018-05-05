@@ -17,6 +17,8 @@ class GraphTypes(object):
 
 
 class Graph(Drawables.Drawable):
+    FIFO_CLOSING_COMMAND = "CLOSING"
+
     def __init__(self, x, y, width, height):
         """ Note here that x and y are the top left coordinate, not data_x and data_y """
         super(Graph, self).__init__(x, y, width, height)
@@ -37,6 +39,7 @@ class Graph(Drawables.Drawable):
         self._y_axis_x = -1
 
         self.datasets = dict()
+        self.fifo_sources = []
 
     def draw(self, surface):
         super().draw(surface)
@@ -120,8 +123,19 @@ class Graph(Drawables.Drawable):
                               bg_color=self._plot_bg_color, fg_color=self._plot_axis_color,
                               align_x=Drawables.TextBox.ALIGN_LEFT, align_y=Drawables.TextBox.ALIGN_CENTER).draw(surface)
 
+    def exit(self):
+        for fifo_source in self.fifo_sources:
+            if not (os.path.exists(fifo_source) and stat.S_ISFIFO(os.stat(fifo_source).st_mode)):
+                continue
+
+            # Go through all of the fifos writing a command indicating that fifo should close
+            with open(fifo_source, "w") as fifo:
+                fifo.write(Graph.FIFO_CLOSING_COMMAND)
+
     def setup_new_data_source(self, fifo_source, new_data_callback):
         assert os.path.exists(fifo_source) and stat.S_ISFIFO(os.stat(fifo_source).st_mode)
+
+        self.fifo_sources = self.fifo_sources.append(fifo_source)
 
         def _get_new_data():
             try:
@@ -131,6 +145,12 @@ class Graph(Drawables.Drawable):
                             data = fifo.read().rstrip("\n")
                             if len(data) == 0:
                                 break
+
+                            # Check if the fifo is actually initiating closing
+                            if data == Graph.FIFO_CLOSING_COMMAND:
+                                return
+
+                            # Data arrived so run the callback with the new data
                             new_data_callback(self, fifo_source, data)
             except:
                 print("{} closed!".format(fifo_source))

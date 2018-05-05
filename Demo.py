@@ -10,9 +10,9 @@ import PyDisplay
 
 
 class TempPage1(Pages.Page):
-    def __init__(self, event_handler):
+    def __init__(self, pydisplay, event_handler):
         page_size = (Constants.PI_TFT_SCREEN_SIZE[0], Constants.PI_TFT_SCREEN_SIZE[1] - Pages.PageManager.SWITCHER_HEIGHT)
-        super().__init__(event_handler, "temp2", page_size, Colors.BLACK)
+        super().__init__(pydisplay, event_handler, "temp2", page_size, Colors.BLACK)
 
         self.scatter = Graphs.Scatter(0, 0, *self.page_size)
         self.scatter.set_title("TEST")
@@ -33,8 +33,8 @@ class TempPage1(Pages.Page):
 
 
 class TempPage2(Pages.Page):
-    def __init__(self, event_handler):
-        super().__init__(event_handler, "temp1", (400, 300), Colors.BLACK)
+    def __init__(self, pydisplay, event_handler):
+        super().__init__(pydisplay, event_handler, "temp1", (400, 300), Colors.BLACK)
 
         self.button = Drawables.Button(50, 50, 100, 50, "Hello", 25, Colors.WHITE, Colors.BLUE, callback=self.button_callback)
         self.textBox = Drawables.TextBox(50, 110, 100, 50, "textbox here", 15, Colors.CYAN, Colors.BLACK)
@@ -47,6 +47,7 @@ class TempPage2(Pages.Page):
 
     def button_callback(self, event):
         print("Button pressed!: {}".format(event))
+        self._pydisplay.exit()
 
     def button_27_callback(self, event):
         print(event.pin)

@@ -23,16 +23,17 @@ class Drawable(object):
     def enable(self, event_handler):
         assert isinstance(event_handler, Events.EventHandler)
         self._enabled = True
-        pass
 
     def disable(self, event_handler):
         assert isinstance(event_handler, Events.EventHandler)
         self._enabled = False
-        pass
 
     def draw(self, surface):
         if not self._visible:
             return
+
+    def exit(self):
+        pass
 
     def move(self, dx, dy):
         self.x += dx

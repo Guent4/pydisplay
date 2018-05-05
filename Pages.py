@@ -4,16 +4,19 @@ import Colors
 import Constants
 import Drawables
 import Events
+import PyDisplay
 
 
 class Page(object):
-    def __init__(self, event_handler, page_name, page_size=Constants.PI_TFT_SCREEN_SIZE, bg_color=Colors.BLACK):
+    def __init__(self, pydisplay, event_handler, page_name, page_size=Constants.PI_TFT_SCREEN_SIZE, bg_color=Colors.BLACK):
+        assert isinstance(pydisplay, PyDisplay.PyDisplay)
         assert isinstance(page_size, tuple) and len(page_size) == 2
         assert Colors.is_color(bg_color)
 
         self.location_on_screen = (0, 0)                    # This is the location (top left) of the page on the screen
         self.screen_size = Constants.PI_TFT_SCREEN_SIZE     # This is the size of the screen
 
+        self._pydisplay = pydisplay
         self._event_handler = event_handler
         self.page_name = str(page_name)
         self.page_size = page_size
@@ -73,6 +76,10 @@ class Page(object):
             drawable.move(*self.location_on_screen)
             drawable.draw(surface)
             drawable.move(-self.location_on_screen[0], -self.location_on_screen[1])
+
+    def exit(self):
+        for drawable in self.drawables:
+            drawable.exit()
 
     def _scroll(self, event):
         assert isinstance(event, Events.EventTouchMovement)
@@ -211,3 +218,7 @@ class PageManager(object):
 
         top = 0 if self.switcher_location == PageManager.SWITCHER_LOCATIONS["TOP"] else (Constants.PI_TFT_SCREEN_SIZE[1] - PageManager.SWITCHER_HEIGHT)
         pygame.draw.line(surface, Colors.WHITE, (0, top), (Constants.PI_TFT_SCREEN_SIZE[0], top), 1)
+
+    def exit(self):
+        for page in self.pages:
+            page.exit()

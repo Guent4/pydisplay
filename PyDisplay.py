@@ -45,16 +45,19 @@ class PyDisplay(object):
         assert len(page_classes) == len(page_class_args)
 
         # PageManager is responsible for all of the pages including displaying the pages and switching between pages
-        pages = [cls(self._event_handler, *arg) for cls, arg in zip(page_classes, page_class_args)]
+        pages = [cls(self, self._event_handler, *arg) for cls, arg in zip(page_classes, page_class_args)]
         self.page_manager = Pages.PageManager(self._event_handler, pages, page_manager_location)
 
-    def stop(self):
+    def exit(self):
         self._alive = False
 
         # Stop the event handler and controllers
         self._event_handler.stop()
         if self._touch_ctrl is not None: self._touch_ctrl.stop()
         if self._button_ctrl is not None: self._button_ctrl.stop()
+
+        if self.page_manager is not None:
+            self.page_manager.exit()
 
     def run(self):
         try:
@@ -74,4 +77,4 @@ class PyDisplay(object):
         except:
             print("EXCEPTION!")
         finally:
-            self.stop()
+            self.exit()
