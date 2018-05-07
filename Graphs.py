@@ -96,7 +96,7 @@ class Graph(Drawables.Drawable):
                               width=20, height=10,
                               text=str(tick_value), size=10,
                               bg_color=self._plot_bg_color, fg_color=self._plot_axis_color,
-                              x_align="center", y_align="top").draw(surface)
+                              x_align="left", y_align="center").draw(surface)
 
         # Draw y tick marks
         if self.y_bounds[0] <= 0 and self.y_bounds[1] <= 0:

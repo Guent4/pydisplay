@@ -104,13 +104,12 @@ class Button(Drawable):
 class TextBox(Drawable):
     def __init__(self, x, y, width, height, text, size, bg_color, fg_color, x_align, y_align, rotate=0):
         super().__init__(x, y, width, height)
-        self.width = width
-        self.height = height
         self.text = text
         self.bg_color = bg_color
         self.fg_color = fg_color
         self._my_font = pygame.font.Font(None, size)
-        self._align = self.set_align(x_align,y_align)
+        self.x_align = x_align
+        self.y_align = y_align
         self._rotate = rotate
 
     def set_align(self, x_align, y_align):
@@ -147,7 +146,8 @@ class TextBox(Drawable):
             pygame.draw.rect(surface, self.bg_color, rect)
         text_surface = self._my_font.render(self.text, True, self.fg_color)
         text_surface = pygame.transform.rotate(text_surface, self._rotate)
-        text_rect = text_surface.get_rect(**self._align)
+        align = self.set_align(self.x_align, self.y_align)
+        text_rect = text_surface.get_rect(**align)
         surface.blit(text_surface, text_rect)
 
     # def rotate_rect(self, rect, ):
