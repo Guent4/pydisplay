@@ -37,7 +37,7 @@ class Graph(Drawables.Drawable):
         self.datasets = dict()
         self.fifo_sources = []
 
-    def create_plot(self, offset_left=40, offset_right=10, offset_top=30, offset_bottom=30, bg_color=Colors.BLACK, fg_color=Colors.WHITE):
+    def create_plot(self, offset_left=30, offset_right=10, offset_top=30, offset_bottom=30, bg_color=Colors.BLACK, fg_color=Colors.WHITE):
         self._plot["offset_x"] = offset_left
         self._plot["offset_y"] = offset_top
         self._plot["width"] = self.width - offset_right - offset_left
@@ -99,9 +99,8 @@ class Graph(Drawables.Drawable):
         for tick_x, tick_value in zip(x_ticks_x, x_ticks_values):
             self._drawables["x_ticks"].append(Drawables.Line(tick_x, plot_y + height - 4, 0, 4, self._plot["fg_color"]))
             self._drawables["x_numbers"].append(
-                Drawables.TextBox(x=tick_x, y=plot_y + height, width=20, height=10, text=str(tick_value), size=10,
-                                  bg_color=self._plot["bg_color"], fg_color=self._plot["fg_color"],
-                                  align_x=Drawables.TextBox.ALIGN_X_CENTER, align_y=Drawables.TextBox.ALIGN_Y_TOP)
+                Drawables.Text(x=tick_x, y=plot_y + height + 2, text=str(tick_value), font_size=10, fg_color=self._plot["fg_color"],
+                               align_x=Drawables.Text.ALIGN_X_CENTER, align_y=Drawables.Text.ALIGN_Y_TOP)
             )
 
         # Figure out y tick marks
@@ -121,9 +120,8 @@ class Graph(Drawables.Drawable):
         for tick_y, tick_value in zip(y_ticks_y, y_ticks_values):
             self._drawables["y_ticks"].append(Drawables.Line(plot_x, tick_y, 4, 0, self._plot["fg_color"]))
             self._drawables["y_numbers"].append(
-                Drawables.TextBox(x=plot_x, y=tick_y, width=20, height=10, text=str(tick_value), size=10,
-                                  bg_color=self._plot["bg_color"], fg_color=self._plot["fg_color"],
-                                  align_x=Drawables.TextBox.ALIGN_X_LEFT, align_y=Drawables.TextBox.ALIGN_Y_CENTER)
+                Drawables.Text(x=plot_x - 2, y=tick_y, text=str(tick_value), font_size=10, fg_color=self._plot["fg_color"],
+                               align_x=Drawables.Text.ALIGN_X_RIGHT, align_y=Drawables.Text.ALIGN_Y_CENTER)
             )
 
     def draw(self, surface):
@@ -219,28 +217,25 @@ class Graph(Drawables.Drawable):
         else:
             self.datasets[dataset_name] = {"color": Colors.GREEN, "xs": [x_value], "ys": [y_value]}
 
-    def set_title(self, text, distance_from_top_of_graph=10, height=20, font_size=20, bg_color=Colors.BLACK, fg_color=Colors.WHITE):
-        self._drawables["title"] = Drawables.TextBox(x=self.width / 2, y=self.y + distance_from_top_of_graph,
-                                                     width=self.width, height=height,
-                                                     text=text, size=font_size,
-                                                     bg_color=bg_color, fg_color=fg_color,
-                                                     align_x=Drawables.TextBox.ALIGN_X_CENTER, align_y=Drawables.TextBox.ALIGN_Y_TOP)
+    def set_title(self, text, distance_from_top_of_graph=5, font_size=20, fg_color=None):
+        fg_color = self._plot["fg_color"] if fg_color is None else fg_color
+        self._drawables["title"] = Drawables.Text(x=self.width / 2, y=self.y + distance_from_top_of_graph,
+                                                  text=text, font_size=font_size, fg_color=fg_color,
+                                                  align_x=Drawables.Text.ALIGN_X_CENTER, align_y=Drawables.Text.ALIGN_Y_TOP)
 
-    def set_x_label(self, text, distance_from_bottom_of_graph=10, height=15, font_size=15, bg_color=Colors.BLACK, fg_color=Colors.WHITE):
-        self._drawables["x_label"] = Drawables.TextBox(x=0, y=self.y + self.height - distance_from_bottom_of_graph - height,
-                                                       width=self.width, height=height,
-                                                       text=text, size=font_size,
-                                                       bg_color=bg_color, fg_color=fg_color,
-                                                       align_x=Drawables.TextBox.ALIGN_X_CENTER, align_y=Drawables.TextBox.ALIGN_Y_BOTTOM)
+    def set_x_label(self, text, distance_from_bottom_of_graph=5, font_size=15, fg_color=None):
+        x = self.x + self._plot["offset_x"] + self._plot["width"] / 2
+        y = self.y + self.height - distance_from_bottom_of_graph
+        fg_color = self._plot["fg_color"] if fg_color is None else fg_color
+        self._drawables["x_label"] = Drawables.Text(x=x, y=y, text=text, font_size=font_size, fg_color=fg_color,
+                                                    align_x=Drawables.Text.ALIGN_X_CENTER, align_y=Drawables.Text.ALIGN_Y_BOTTOM)
 
-    def set_y_label(self, text, distance_from_left_of_graph=10, height=15, font_size=15, bg_color=Colors.BLACK, fg_color=Colors.WHITE):
-        # TODO fix this after the text box rotations are fixed
-        # self._drawables["y_label"] = Drawables.TextBox(x=0, y=self.y + self.height - distance_from_bottom_of_graph - height,
-        #                                                width=self.width, height=height,
-        #                                                text=text, size=font_size,
-        #                                                bg_color=bg_color, fg_color=fg_color,
-        #                                                align_x=Drawables.TextBox.ALIGN_CENTER, align_y=Drawables.TextBox.ALIGN_BOTTOM)
-        pass
+    def set_y_label(self, text, distance_from_left_of_graph=5, font_size=15, fg_color=None):
+        x = self.x + distance_from_left_of_graph
+        y = self.y + self._plot["offset_y"] + self._plot["height"] / 2
+        fg_color = self._plot["fg_color"] if fg_color is None else fg_color
+        self._drawables["y_label"] = Drawables.Text(x=x, y=y, text=text, font_size=font_size, fg_color=fg_color,
+                                                    align_x=Drawables.Text.ALIGN_X_LEFT, align_y=Drawables.Text.ALIGN_Y_CENTER, rotate=90)
 
     def _datum_position(self, x_value, y_value):
         x = self._axis["y_axis_x"] + x_value * (self._plot["width"] / abs(self._axis["x_max"] - self._axis["x_min"]))

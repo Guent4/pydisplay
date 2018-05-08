@@ -91,8 +91,8 @@ class TempPage2(Pages.Page):
         super().__init__(pydisplay, event_handler, "temp1", (400, 300), Colors.BLACK)
 
         self.button = Drawables.Button(50, 50, 100, 50, "Hello", 25, Colors.WHITE, Colors.BLUE, callback=self.button_callback)
-        self.textBox = Drawables.TextBox(50, 110, 100, 50, "textbox here", 15, Colors.CYAN, Colors.RED, Drawables.TextBox.ALIGN_X_CENTER, Drawables.TextBox.ALIGN_Y_CENTER, rotate=90)
-        self.textBox2 = Drawables.TextBox(200, 100, 100, 50, "textbox here", 15, Colors.CYAN, Colors.WHITE, Drawables.TextBox.ALIGN_X_RIGHT, Drawables.TextBox.ALIGN_Y_TOP)
+        self.textBox = Drawables.Text(50, 110, "textbox here", 15, Colors.RED, Drawables.Text.ALIGN_X_CENTER, Drawables.Text.ALIGN_Y_CENTER, rotate=90)
+        self.textBox2 = Drawables.Text(200, 100, "textbox here", 15, Colors.WHITE, Drawables.Text.ALIGN_X_RIGHT, Drawables.Text.ALIGN_Y_TOP)
         self._drawables.append(self.button)
         self._drawables.append(self.textBox)
         self._drawables.append(self.textBox2)
@@ -119,7 +119,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    page_classes = [TempPage2, TempPage1]
+    page_classes = [TempPage1, TempPage2]
     page_class_args = [[], []]
     pydisplay = PyDisplay.PyDisplay(not args.not_on_pitft, not args.disable_touchscreen, not args.disable_button)
     pydisplay.setup_pages(page_classes, page_class_args, Pages.PageManager.SWITCHER_LOCATIONS["BOTTOM"])

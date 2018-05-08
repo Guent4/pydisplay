@@ -113,7 +113,7 @@ class Button(Drawable):
             return left <= pos[0] <= right and top <= pos[1] <= bottom
 
 
-class TextBox(Drawable):
+class Text(Drawable):
     ALIGN_X_CENTER = 0
     ALIGN_X_LEFT = 1
     ALIGN_X_RIGHT = 2
@@ -121,31 +121,30 @@ class TextBox(Drawable):
     ALIGN_Y_TOP = 4
     ALIGN_Y_BOTTOM = 5
 
-    def __init__(self, x, y, width, height, text, size, bg_color, fg_color, align_x=ALIGN_X_CENTER, align_y=ALIGN_Y_CENTER, rotate=0):
-        assert align_x in [TextBox.ALIGN_X_CENTER, TextBox.ALIGN_X_LEFT, TextBox.ALIGN_X_RIGHT]
-        assert align_y in [TextBox.ALIGN_Y_CENTER, TextBox.ALIGN_Y_TOP, TextBox.ALIGN_Y_BOTTOM]
+    def __init__(self, x, y, text, font_size, fg_color, align_x=ALIGN_X_CENTER, align_y=ALIGN_Y_CENTER, rotate=0):
+        assert align_x in [Text.ALIGN_X_CENTER, Text.ALIGN_X_LEFT, Text.ALIGN_X_RIGHT]
+        assert align_y in [Text.ALIGN_Y_CENTER, Text.ALIGN_Y_TOP, Text.ALIGN_Y_BOTTOM]
 
-        super().__init__(x, y, width, height)
+        super().__init__(x, y, 0, 0)
         self.text = text
-        self.bg_color = bg_color
         self.fg_color = fg_color
-        self._my_font = pygame.font.Font(None, size)
+        self._my_font = pygame.font.Font(None, font_size)
         self.align_x = align_x
         self.align_y = align_y
         self._rotate = rotate
 
     def set_align(self, align_x, align_y):
         dict = {}
-        if align_x == TextBox.ALIGN_X_LEFT:
+        if align_x == Text.ALIGN_X_LEFT:
             dict["left"] = self.x
-        elif align_x == TextBox.ALIGN_X_RIGHT:
+        elif align_x == Text.ALIGN_X_RIGHT:
             dict["right"] = self.x
         else:
             dict["centerx"] = self.x
 
-        if align_y == TextBox.ALIGN_Y_TOP:
+        if align_y == Text.ALIGN_Y_TOP:
             dict["top"] = self.y
-        elif align_y == TextBox.ALIGN_Y_BOTTOM:
+        elif align_y == Text.ALIGN_Y_BOTTOM:
             dict["bottom"] = self.y
         else:
             dict["centery"] = self.y
@@ -159,21 +158,8 @@ class TextBox(Drawable):
 
     def draw(self, surface):
         super().draw(surface)
-        # if (self._rotate % 90) == 0:
-        #     if ((self._rotate / 90) % 2) == 0:
-        #         rect = (self.x, self.y, self.width, self.height)
-        #     else:
-        #         rect = (self.x, self.y, self.height, self.width)
-        #
-        #     pygame.draw.rect(surface, self.bg_color, rect)
         text_surface = self._my_font.render(self.text, True, self.fg_color)
         text_surface = pygame.transform.rotate(text_surface, self._rotate)
         align = self.set_align(self.align_x, self.align_y)
         text_rect = text_surface.get_rect(**align)
         surface.blit(text_surface, text_rect)
-
-    # def rotate_rect(self, rect, ):
-
-
-    def position_inside(self, position):
-        pass
