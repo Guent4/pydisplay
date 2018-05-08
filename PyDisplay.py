@@ -74,7 +74,7 @@ class PyDisplay(object):
 
                 # Sleep for the refresh interval
                 time.sleep(max(0, Constants.REFRESH_INTERVAL - (time.time() - start_time)))
-        except:
-            print("EXCEPTION!")
+        except Exception as e:
+            print("EXCEPTION! {}".format(e))
         finally:
             self.exit()

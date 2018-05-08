@@ -23,105 +23,148 @@ class Graph(Drawables.Drawable):
         """ Note here that x and y are the top left coordinate, not data_x and data_y """
         super(Graph, self).__init__(x, y, width, height)
 
-        self._title = None
-        self._x_label = None
-        self._y_label = None
-        self.x_bounds = [-10, 10, 2]
-        self.y_bounds = [-7, 7, 2]
+        self._plot = {"x": 0, "y": 0, "width": 0, "height": 0, "bg_color": None, "fg_color": None}
+        self._axis = {"x_min": 0, "x_max": 0, "x_interval": 0, "y_min": 0, "y_max": 0, "y_interval": 0}
+        self._drawables = {"title": None, "x_label": None, "y_label": None, "x_axis": None, "y_axis": None,
+                           "x_ticks": [], "x_numbers": [], "y_ticks": [], "y_numbers": []}
 
-        self._plot_x = 40
-        self._plot_y = 30
-        self._plot_width = self.width - self._plot_x
-        self._plot_height = self.height - self._plot_y - 30
-        self._plot_bg_color = Colors.BLACK
-        self._plot_axis_color = Colors.WHITE
-        self._x_axis_y = -1
-        self._y_axis_x = -1
+        self.create_plot()
+        self.set_bounds(x_min=-10, x_max=10, x_interval=2, y_min=-7, y_max=7, y_interval=2)
 
         self.datasets = dict()
         self.fifo_sources = []
 
-    def draw(self, surface):
-        super().draw(surface)
+    def create_plot(self, offset_left=40, offset_right=10, offset_top=30, offset_bottom=30, bg_color=Colors.BLACK, fg_color=Colors.WHITE):
+        self._plot["offset_x"] = offset_left
+        self._plot["offset_y"] = offset_top
+        self._plot["width"] = self.width - offset_right - offset_left
+        self._plot["height"] = self.height - offset_top - offset_bottom
+        self._plot["bg_color"] = bg_color
+        self._plot["fg_color"] = fg_color
 
-        if self._title is not None: self._title.draw(surface)
-        if self._x_label is not None: self._x_label.draw(surface)
-        if self._y_label is not None: self._y_label.draw(surface)
+    def set_bounds(self, x_min=None, x_max=None, x_interval=None, y_min=None, y_max=None, y_interval=None):
+        if x_min is None: x_min = self._axis["x_min"]
+        if x_max is None: x_max = self._axis["x_max"]
+        if x_interval is None: x_interval = self._axis["x_interval"]
+        if y_min is None: y_min = self._axis["y_min"]
+        if y_max is None: y_max = self._axis["y_max"]
+        if y_interval is None: y_interval = self._axis["y_interval"]
 
-        # Draw the x axis
-        assert len(self.x_bounds) == 3 and self.x_bounds[1] > self.x_bounds[0] and self.x_bounds[2] > 0
-        if self.y_bounds[0] <= 0 and self.y_bounds[1] <= 0:
-            # Everything is negative (the x axis will show at the very top
-            self._x_axis_y = self._plot_y
-        elif self.y_bounds[0] >= 0 and self.y_bounds[1] >= 0:
-            # Everything is positive (the x axis will show at the very bottom
-            self._x_axis_y = self._plot_y + self._plot_height
+        # Make sure the inputs are reasonable
+        assert x_max > x_min and x_interval > 0
+        assert y_max > y_min and y_interval > 0
+
+        # Store the variables
+        self._axis["x_min"] = x_min
+        self._axis["x_max"] = x_max
+        self._axis["x_interval"] = x_interval
+        self._axis["y_min"] = y_min
+        self._axis["y_max"] = y_max
+        self._axis["y_interval"] = y_interval
+
+        # Some local variables
+        plot_x = self.x + self._plot["offset_x"]
+        plot_y = self.y + self._plot["offset_y"]
+        width = self._plot["width"]
+        height = self._plot["height"]
+
+        # Figure out the axes
+        self._axis_value_calculate()
+        self._drawables["x_axis"] = Drawables.Line(plot_x, self._axis["x_axis_y"], width, 0, self._plot["fg_color"])
+        self._drawables["y_axis"] = Drawables.Line(self._axis["y_axis_x"], plot_y, 0, height, self._plot["fg_color"])
+
+        # Figure out x tick marks
+        if x_min <= 0 and x_max <= 0:
+            x_num_ticks = abs(x_max - x_min) / x_interval
+            x_tick_distance_apart = width / x_num_ticks
+            x_ticks_x = [plot_x + width - i * x_tick_distance_apart for i in
+                         range(int(x_num_ticks), -1, -1)]
+            x_ticks_values = [x_max - i * x_interval for i in range(int(x_num_ticks), -1, -1)]
+        elif x_min >= 0 and x_max >= 0:
+            x_num_ticks = abs(x_max - x_min) / x_interval
+            x_tick_distance_apart = width / x_num_ticks
+            x_ticks_x = [plot_x + i * x_tick_distance_apart for i in range(int(x_num_ticks) + 1)]
+            x_ticks_values = [x_min + i * x_interval for i in range(int(x_num_ticks) + 1)]
         else:
-            # There are both positive and negative values so the x axis will show in the middle of the screen
-            self._x_axis_y = self._plot_y + abs(self.y_bounds[1]) / float(self.y_bounds[1] - self.y_bounds[0]) * self._plot_height
-        pygame.draw.line(surface, self._plot_axis_color, [self._plot_x, self._x_axis_y], [self._plot_x + self._plot_width, self._x_axis_y])
-
-        # Draw the y axis
-        assert len(self.y_bounds) == 3 and self.y_bounds[1] > self.y_bounds[0] and self.y_bounds[2] > 0
-        if self.x_bounds[0] <= 0 and self.x_bounds[1] <= 0:
-            # Everything is negative (the y axis will show at the very top
-            self._y_axis_x = self._plot_x + self._plot_width
-        elif self.x_bounds[0] >= 0 and self.x_bounds[1] >= 0:
-            # Everything is positive (the y axis will show at the very bottom
-            self._y_axis_x = self._plot_x
-        else:
-            # There are both positive and negative values so the y axis will show in the middle of the screen
-            self._y_axis_x = self._plot_x + abs(self.x_bounds[0]) / float(self.x_bounds[1] - self.x_bounds[0]) * self._plot_width
-        pygame.draw.line(surface, self._plot_axis_color, [self._y_axis_x, self._plot_y], [self._y_axis_x, self._plot_y + self._plot_height])
-
-        # Draw x tick marks
-        if self.x_bounds[0] <= 0 and self.x_bounds[1] <= 0:
-            x_num_ticks = abs(self.x_bounds[1] - self.x_bounds[0]) / self.x_bounds[2]
-            x_tick_distance_apart = self._plot_width / x_num_ticks
-            x_ticks_x = [self._plot_x + self._plot_width - i * x_tick_distance_apart for i in range(int(x_num_ticks), -1, -1)]
-            x_ticks_values = [self.x_bounds[1] - i * self.x_bounds[2] for i in range(int(x_num_ticks), -1, -1)]
-        elif self.x_bounds[0] >= 0 and self.x_bounds[1] >= 0:
-            x_num_ticks = abs(self.x_bounds[1] - self.x_bounds[0]) / self.x_bounds[2]
-            x_tick_distance_apart = self._plot_width / x_num_ticks
-            x_ticks_x = [self._plot_x + i * x_tick_distance_apart for i in range(int(x_num_ticks) + 1)]
-            x_ticks_values = [self.x_bounds[0] + i * self.x_bounds[2] for i in range(int(x_num_ticks) + 1)]
-        else:
-            x_num_ticks_positive = self.x_bounds[1] / self.x_bounds[2]
-            x_num_ticks_negative = abs(self.x_bounds[0]) / self.x_bounds[2]
-            x_tick_distance_apart = self._plot_width / (x_num_ticks_positive + x_num_ticks_negative)
-            x_ticks_x = [self._y_axis_x - i * x_tick_distance_apart for i in range(int(x_num_ticks_negative), -1, -1)]
-            x_ticks_x.extend([self._y_axis_x + i * x_tick_distance_apart for i in range(int(x_num_ticks_positive) + 1)])
-            x_ticks_values = [-i * self.x_bounds[2] for i in range(int(x_num_ticks_negative), -1, -1)]
-            x_ticks_values.extend([i * self.x_bounds[2] for i in range(int(x_num_ticks_positive) + 1)])
+            x_num_ticks_positive = x_max / x_interval
+            x_num_ticks_negative = abs(x_min) / x_interval
+            x_tick_distance_apart = width / (x_num_ticks_positive + x_num_ticks_negative)
+            x_ticks_x = [self._axis["y_axis_x"] - i * x_tick_distance_apart for i in range(int(x_num_ticks_negative), -1, -1)]
+            x_ticks_x.extend([self._axis["y_axis_x"] + i * x_tick_distance_apart for i in range(int(x_num_ticks_positive) + 1)])
+            x_ticks_values = [-i * x_interval for i in range(int(x_num_ticks_negative), -1, -1)]
+            x_ticks_values.extend([i * x_interval for i in range(int(x_num_ticks_positive) + 1)])
         for tick_x, tick_value in zip(x_ticks_x, x_ticks_values):
-            pygame.draw.line(surface, self._plot_axis_color, [tick_x, self._plot_y + self._plot_height], [tick_x, self._plot_y + self._plot_height - 4])
-            Drawables.TextBox(x=tick_x, y=self._plot_y + self._plot_height,
-                              width=20, height=10,
-                              text=str(tick_value), size=10,
-                              bg_color=self._plot_bg_color, fg_color=self._plot_axis_color,
-                              align_x=Drawables.TextBox.ALIGN_CENTER, align_y=Drawables.TextBox.ALIGN_TOP).draw(surface)
+            self._drawables["x_ticks"].append(Drawables.Line(tick_x, plot_y + height - 4, 0, 4, self._plot["fg_color"]))
+            self._drawables["x_numbers"].append(
+                Drawables.TextBox(x=tick_x, y=plot_y + height, width=20, height=10, text=str(tick_value), size=10,
+                                  bg_color=self._plot["bg_color"], fg_color=self._plot["fg_color"],
+                                  align_x=Drawables.TextBox.ALIGN_CENTER, align_y=Drawables.TextBox.ALIGN_TOP)
+            )
 
-        # Draw y tick marks
-        if self.y_bounds[0] <= 0 and self.y_bounds[1] <= 0:
-            y_num_ticks = abs(self.y_bounds[1] - self.y_bounds[0]) / self.y_bounds[2]
-            y_ticks_values = [self.y_bounds[1] - i * self.y_bounds[2] for i in range(int(y_num_ticks) + 1)]
-        elif self.y_bounds[0] >= 0 and self.y_bounds[1] >= 0:
-            y_num_ticks = abs(self.y_bounds[1] - self.y_bounds[0]) / self.y_bounds[2]
-            y_ticks_values = [self.y_bounds[0] + i * self.y_bounds[2] for i in range(int(y_num_ticks) + 1)]
+        # Figure out y tick marks
+        if y_min <= 0 and y_max <= 0:
+            y_num_ticks = abs(y_max - y_min) / y_interval
+            y_ticks_values = [y_max - i * y_interval for i in range(int(y_num_ticks) + 1)]
+        elif y_min >= 0 and y_max >= 0:
+            y_num_ticks = abs(y_max - y_min) / y_interval
+            y_ticks_values = [y_min + i * y_interval for i in range(int(y_num_ticks) + 1)]
         else:
-            y_num_ticks_positive = self.y_bounds[1] / self.y_bounds[2]
-            y_num_ticks_negative = abs(self.y_bounds[0]) / self.y_bounds[2]
-            y_ticks_values = [-i * self.y_bounds[2] for i in range(int(y_num_ticks_negative) + 1)]
-            y_ticks_values.extend([i * self.y_bounds[2] for i in range(int(y_num_ticks_positive) + 1)])
+            y_num_ticks_positive = y_max / y_interval
+            y_num_ticks_negative = abs(y_min) / y_interval
+            y_ticks_values = [-i * y_interval for i in range(int(y_num_ticks_negative) + 1)]
+            y_ticks_values.extend([i * y_interval for i in range(int(y_num_ticks_positive) + 1)])
         y_ticks_values = list(set(y_ticks_values))
         y_ticks_y = [self._datum_position(0, y_tick_value)[1] for y_tick_value in y_ticks_values]
         for tick_y, tick_value in zip(y_ticks_y, y_ticks_values):
-            pygame.draw.line(surface, self._plot_axis_color, [self._plot_x, tick_y], [self._plot_x + 4, tick_y])
-            Drawables.TextBox(x=self._plot_x, y=tick_y,
-                              width=20, height=10,
-                              text=str(tick_value), size=10,
-                              bg_color=self._plot_bg_color, fg_color=self._plot_axis_color,
-                              align_x=Drawables.TextBox.ALIGN_LEFT, align_y=Drawables.TextBox.ALIGN_CENTER).draw(surface)
+            self._drawables["y_ticks"].append(Drawables.Line(plot_x, tick_y, 4, 0, self._plot["fg_color"]))
+            self._drawables["y_numbers"].append(
+                Drawables.TextBox(x=plot_x, y=tick_y, width=20, height=10, text=str(tick_value), size=10,
+                                  bg_color=self._plot["bg_color"], fg_color=self._plot["fg_color"],
+                                  align_x=Drawables.TextBox.ALIGN_LEFT, align_y=Drawables.TextBox.ALIGN_CENTER)
+            )
+
+    def draw(self, surface):
+        super().draw(surface)
+
+        if self._drawables["title"] is not None: self._drawables["title"].draw(surface)
+        if self._drawables["x_label"] is not None: self._drawables["x_label"].draw(surface)
+        if self._drawables["y_label"] is not None: self._drawables["y_label"].draw(surface)
+
+        self._drawables["x_axis"].draw(surface)
+        for tick in self._drawables["x_ticks"]:
+            tick.draw(surface)
+        for number in self._drawables["x_numbers"]:
+            number.draw(surface)
+
+        self._drawables["y_axis"].draw(surface)
+        for tick in self._drawables["y_ticks"]:
+            tick.draw(surface)
+        for number in self._drawables["y_numbers"]:
+            number.draw(surface)
+
+
+    def move(self, dx, dy):
+        super().move(dx, dy)
+
+        # Need to update values for x_axis_y and y_axis_x
+        self._axis_value_calculate()
+
+        # Move all of the drawables
+        if self._drawables["title"] is not None: self._drawables["title"].move(dx, dy)
+        if self._drawables["x_label"] is not None: self._drawables["x_label"].move(dx, dy)
+        if self._drawables["y_label"] is not None: self._drawables["y_label"].move(dx, dy)
+
+        self._drawables["x_axis"].move(dx, dy)
+        for tick in self._drawables["x_ticks"]:
+            tick.move(dx, dy)
+        for number in self._drawables["x_numbers"]:
+            number.move(dx, dy)
+
+        self._drawables["y_axis"].move(dx, dy)
+        for tick in self._drawables["y_ticks"]:
+            tick.move(dx, dy)
+        for number in self._drawables["y_numbers"]:
+            number.move(dx, dy)
 
     def exit(self):
         for fifo_source in self.fifo_sources:
@@ -174,31 +217,60 @@ class Graph(Drawables.Drawable):
             self.datasets[dataset_name] = {"color": Colors.GREEN, "xs": [x_value], "ys": [y_value]}
 
     def set_title(self, text, distance_from_top_of_graph=10, height=20, font_size=20, bg_color=Colors.BLACK, fg_color=Colors.WHITE):
-        self._title = Drawables.TextBox(x=0, y=self.y + distance_from_top_of_graph,
-                                        width=self.width, height=height,
-                                        text=text, size=font_size,
-                                        bg_color=bg_color, fg_color=fg_color,
-                                        align_x=Drawables.TextBox.ALIGN_CENTER, align_y=Drawables.TextBox.ALIGN_TOP)
+        self._drawables["title"] = Drawables.TextBox(x=0, y=self.y + distance_from_top_of_graph,
+                                                     width=self.width, height=height,
+                                                     text=text, size=font_size,
+                                                     bg_color=bg_color, fg_color=fg_color,
+                                                     align_x=Drawables.TextBox.ALIGN_CENTER, align_y=Drawables.TextBox.ALIGN_TOP)
 
     def set_x_label(self, text, distance_from_bottom_of_graph=10, height=15, font_size=15, bg_color=Colors.BLACK, fg_color=Colors.WHITE):
-        self._x_label = Drawables.TextBox(x=0, y=self.y + self.height - distance_from_bottom_of_graph - height,
-                                          width=self.width, height=height,
-                                          text=text, size=font_size,
-                                          bg_color=bg_color, fg_color=fg_color,
-                                          align_x=Drawables.TextBox.ALIGN_CENTER, align_y=Drawables.TextBox.ALIGN_BOTTOM)
+        self._drawables["x_label"] = Drawables.TextBox(x=0, y=self.y + self.height - distance_from_bottom_of_graph - height,
+                                                       width=self.width, height=height,
+                                                       text=text, size=font_size,
+                                                       bg_color=bg_color, fg_color=fg_color,
+                                                       align_x=Drawables.TextBox.ALIGN_CENTER, align_y=Drawables.TextBox.ALIGN_BOTTOM)
 
-    def create_plot(self, plot_x=40, plot_y=30, plot_width=260, plot_height=150, axis_color=Colors.WHITE):
-        self._plot_x = plot_x
-        self._plot_y = plot_y
-        self._plot_width = plot_width
-        self._plot_height = plot_height
-        self._plot_axis_color = axis_color
+    def set_y_label(self, text, distance_from_left_of_graph=10, height=15, font_size=15, bg_color=Colors.BLACK, fg_color=Colors.WHITE):
+        # TODO fix this after the text box rotations are fixed
+        # self._drawables["y_label"] = Drawables.TextBox(x=0, y=self.y + self.height - distance_from_bottom_of_graph - height,
+        #                                                width=self.width, height=height,
+        #                                                text=text, size=font_size,
+        #                                                bg_color=bg_color, fg_color=fg_color,
+        #                                                align_x=Drawables.TextBox.ALIGN_CENTER, align_y=Drawables.TextBox.ALIGN_BOTTOM)
+        pass
 
     def _datum_position(self, x_value, y_value):
-        x = self._y_axis_x + x_value * (self._plot_width / abs(self.x_bounds[1] - self.x_bounds[0]))
-        y = self._x_axis_y - y_value * (self._plot_height / abs(self.y_bounds[1] - self.y_bounds[0]))
+        x = self._axis["y_axis_x"] + x_value * (self._plot["width"] / abs(self._axis["x_max"] - self._axis["x_min"]))
+        y = self._axis["x_axis_y"] - y_value * (self._plot["height"] / abs(self._axis["y_max"] - self._axis["y_min"]))
 
         return int(x), int(y)
+
+    def _axis_value_calculate(self):
+        # Local variables
+        plot_x = self.x + self._plot["offset_x"]
+        plot_y = self.y + self._plot["offset_y"]
+
+        # Figure out the x-axis
+        if self._axis["y_min"] <= 0 and self._axis["y_max"] <= 0:
+            # Everything is negative (the x axis will show at the very top
+            self._axis["x_axis_y"] = plot_y
+        elif self._axis["y_min"] >= 0 and self._axis["y_max"] >= 0:
+            # Everything is positive (the x axis will show at the very bottom
+            self._axis["x_axis_y"] = plot_y + self._plot["height"]
+        else:
+            # There are both positive and negative values so the x axis will show in the middle of the screen
+            self._axis["x_axis_y"] = plot_y + abs(self._axis["y_max"]) / float(self._axis["y_max"] - self._axis["y_min"]) * self._plot["height"]
+
+        # Figure out the y-axis
+        if self._axis["x_min"] <= 0 and self._axis["x_max"] <= 0:
+            # Everything is negative (the y axis will show at the very top
+            self._axis["y_axis_x"] = plot_x + self._plot["width"]
+        elif self._axis["x_min"] >= 0 and self._axis["x_max"] >= 0:
+            # Everything is positive (the y axis will show at the very bottom
+            self._axis["y_axis_x"] = plot_x
+        else:
+            # There are both positive and negative values so the y axis will show in the middle of the screen
+            self._axis["y_axis_x"] = plot_x + abs(self._axis["x_min"]) / float(self._axis["x_max"] - self._axis["x_min"]) * self._plot["width"]
 
 
 class Scatter(Graph):

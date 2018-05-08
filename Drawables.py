@@ -1,5 +1,6 @@
 import pygame
 
+import Colors
 import Events
 
 
@@ -41,6 +42,16 @@ class Drawable(object):
 
     def position_inside(self, position):
         pass
+
+
+class Line(Drawable):
+    def __init__(self, x, y, width, height, color=Colors.WHITE, line_width=1):
+        super().__init__(x, y, width, height)
+        self.color = color
+        self.line_width = line_width
+
+    def draw(self, surface):
+        pygame.draw.line(surface, self.color, [self.x, self.y], [self.x + self.width, self.y + self.height])
 
 
 class Button(Drawable):
