@@ -20,7 +20,10 @@ class Graph(Drawables.Drawable):
     FIFO_CLOSING_COMMAND = "CLOSING"
 
     def __init__(self, x, y, width, height):
-        """ Note here that x and y are the top left coordinate, not data_x and data_y """
+        """
+        Note here that x and y are the top left coordinate of the entire Graph, not data_x and data_y or where the
+        the plot is within the graph
+        """
         super(Graph, self).__init__(x, y, width, height)
 
         self._plot = {"x": 0, "y": 0, "width": 0, "height": 0, "bg_color": None, "fg_color": None}
@@ -98,7 +101,7 @@ class Graph(Drawables.Drawable):
             self._drawables["x_numbers"].append(
                 Drawables.TextBox(x=tick_x, y=plot_y + height, width=20, height=10, text=str(tick_value), size=10,
                                   bg_color=self._plot["bg_color"], fg_color=self._plot["fg_color"],
-                                  align_x=Drawables.TextBox.ALIGN_CENTER, align_y=Drawables.TextBox.ALIGN_TOP)
+                                  align_x=Drawables.TextBox.ALIGN_X_CENTER, align_y=Drawables.TextBox.ALIGN_Y_TOP)
             )
 
         # Figure out y tick marks
@@ -120,7 +123,7 @@ class Graph(Drawables.Drawable):
             self._drawables["y_numbers"].append(
                 Drawables.TextBox(x=plot_x, y=tick_y, width=20, height=10, text=str(tick_value), size=10,
                                   bg_color=self._plot["bg_color"], fg_color=self._plot["fg_color"],
-                                  align_x=Drawables.TextBox.ALIGN_LEFT, align_y=Drawables.TextBox.ALIGN_CENTER)
+                                  align_x=Drawables.TextBox.ALIGN_X_LEFT, align_y=Drawables.TextBox.ALIGN_Y_CENTER)
             )
 
     def draw(self, surface):
@@ -217,18 +220,18 @@ class Graph(Drawables.Drawable):
             self.datasets[dataset_name] = {"color": Colors.GREEN, "xs": [x_value], "ys": [y_value]}
 
     def set_title(self, text, distance_from_top_of_graph=10, height=20, font_size=20, bg_color=Colors.BLACK, fg_color=Colors.WHITE):
-        self._drawables["title"] = Drawables.TextBox(x=0, y=self.y + distance_from_top_of_graph,
+        self._drawables["title"] = Drawables.TextBox(x=self.width / 2, y=self.y + distance_from_top_of_graph,
                                                      width=self.width, height=height,
                                                      text=text, size=font_size,
                                                      bg_color=bg_color, fg_color=fg_color,
-                                                     align_x=Drawables.TextBox.ALIGN_CENTER, align_y=Drawables.TextBox.ALIGN_TOP)
+                                                     align_x=Drawables.TextBox.ALIGN_X_CENTER, align_y=Drawables.TextBox.ALIGN_Y_TOP)
 
     def set_x_label(self, text, distance_from_bottom_of_graph=10, height=15, font_size=15, bg_color=Colors.BLACK, fg_color=Colors.WHITE):
         self._drawables["x_label"] = Drawables.TextBox(x=0, y=self.y + self.height - distance_from_bottom_of_graph - height,
                                                        width=self.width, height=height,
                                                        text=text, size=font_size,
                                                        bg_color=bg_color, fg_color=fg_color,
-                                                       align_x=Drawables.TextBox.ALIGN_CENTER, align_y=Drawables.TextBox.ALIGN_BOTTOM)
+                                                       align_x=Drawables.TextBox.ALIGN_X_CENTER, align_y=Drawables.TextBox.ALIGN_Y_BOTTOM)
 
     def set_y_label(self, text, distance_from_left_of_graph=10, height=15, font_size=15, bg_color=Colors.BLACK, fg_color=Colors.WHITE):
         # TODO fix this after the text box rotations are fixed
@@ -289,3 +292,60 @@ class Scatter(Graph):
             for x_value, y_value in zip(data_x, data_y):
                 x, y = self._datum_position(x_value, y_value)
                 pygame.draw.circle(surface, color, (x, y), 1)
+
+
+class Line(Graph):
+    def __init__(self, x, y, width, height):
+        super(Line, self).__init__(x, y, width, height)
+
+    def draw(self, surface):
+        super().draw(surface)
+
+        # Draw datapoints
+        for dataset_name in self.datasets:
+            color = self.datasets[dataset_name]["color"]
+            data_x = self.datasets[dataset_name]["xs"]
+            data_y = self.datasets[dataset_name]["ys"]
+
+            for x_value, y_value, next_x, next_y in zip(data_x, data_y, data_x[1:], data_y[1:]):
+                x, y = self._datum_position(x_value, y_value)
+                x2, y2 = self._datum_position(next_x, next_y)
+                pygame.draw.line(surface,color,(x,y), (x2,y2))
+
+
+class Bar(Graph):
+    def __init__(self, x, y, width, height):
+        super(Bar, self).__init__(x, y, width, height)
+
+    def draw(self, surface):
+        super().draw(surface)
+
+        # Draw datapoints
+        for dataset_name in self.datasets:
+            color = self.datasets[dataset_name]["color"]
+            data_x = self.datasets[dataset_name]["xs"]
+            data_y = self.datasets[dataset_name]["ys"]
+
+            for x_value, y_value in zip(data_x, data_y):
+                x, y = self._datum_position(x_value, y_value)
+                rect = (x - 8/2, y, 8, y_value * 11)
+                pygame.draw.rect(surface,color,rect)
+
+
+class Histogram(Graph):
+    def __init__(self, x, y, width, height):
+        super(Histogram, self).__init__(x, y, width, height)
+
+    def draw(self, surface):
+        super().draw(surface)
+
+        # Draw datapoints
+        for dataset_name in self.datasets:
+            color = self.datasets[dataset_name]["color"]
+            data_x = self.datasets[dataset_name]["xs"]
+            data_y = self.datasets[dataset_name]["ys"]
+
+            for x_value, y_value in zip(data_x, data_y):
+                x, y = self._datum_position(x_value, y_value)
+                rect = (x - 12/2, y, 13, y_value * 11)
+                pygame.draw.rect(surface,color,rect)

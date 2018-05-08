@@ -58,10 +58,8 @@ class Button(Drawable):
     def __init__(self, x, y, width, height, text, size, bg_color, fg_color, callback=None, shape=1, args=None):
         assert args is None or isinstance(args, list)
         super().__init__(x, y, width, height)
-        self._top_left = (x, y)
-        self._dim = (width, height)
         self.radius = width     # for circle button width becomes the radius.
-        self._center = (x + width / 2, y + height / 2)
+        self._center = (self.x + width / 2, self.y + height / 2)
         self.text = text
         self.shape = shape      # 0 = circle button
         self.bg_color = bg_color
@@ -81,15 +79,15 @@ class Button(Drawable):
     def draw(self, surface):
         super().draw(surface)
         if self.shape == 0:
-            pygame.draw.circle(surface, self.bg_color, self._top_left, self.radius)
+            pygame.draw.circle(surface, self.bg_color, (self.x, self.y), self.radius)
             text_surface = self._my_font.render(self.text, True, self.fg_color)
-            text_rect = text_surface.get_rect(center=self._top_left)
+            text_rect = text_surface.get_rect(center=(self.x, self.y))
             surface.blit(text_surface, text_rect)
         else:
-            rect = (self._top_left[0], self._top_left[1], self._dim[0], self._dim[1])
+            rect = (self.x, self.y, self.width, self.height)
             pygame.draw.rect(surface, self.bg_color, rect)
             text_surface = self._my_font.render(self.text, True, self.fg_color)
-            text_rect = text_surface.get_rect(center=self._center)
+            text_rect = text_surface.get_rect(center=(self.x + self.width / 2, self.y + self.height / 2))
             surface.blit(text_surface, text_rect)
 
     def event_callback(self, event):
@@ -105,35 +103,53 @@ class Button(Drawable):
         :returns: True if pos inside button, False otherwise
         """
         if self.shape == 0:
-            distance = ((pos[1] - self._top_left[1]) ** (2) + (pos[0] - self._top_left[0]) ** (2)) ** (0.5)
+            distance = ((pos[1] - self.y) ** (2) + (pos[0] - self.x) ** (2)) ** (0.5)
             return distance <= self.radius
         else:
-            left = self._top_left[0]
-            right = self._top_left[0] + self._dim[0]
-            top = self._top_left[1]
-            bottom = self._top_left[1] + self._dim[1]
+            left = self.x
+            right = self.x + self.width
+            top = self.y
+            bottom = self.y + self.height
             return left <= pos[0] <= right and top <= pos[1] <= bottom
 
 
 class TextBox(Drawable):
-    ALIGN_CENTER = 0
-    ALIGN_LEFT = 1
-    ALIGN_RIGHT = 2
-    ALIGN_TOP = 1
-    ALIGN_BOTTOM = 2
+    ALIGN_X_CENTER = 0
+    ALIGN_X_LEFT = 1
+    ALIGN_X_RIGHT = 2
+    ALIGN_Y_CENTER = 3
+    ALIGN_Y_TOP = 4
+    ALIGN_Y_BOTTOM = 5
 
-    def __init__(self, x, y, width, height, text, size, bg_color, fg_color, align_x=ALIGN_CENTER, align_y=ALIGN_CENTER):
+    def __init__(self, x, y, width, height, text, size, bg_color, fg_color, align_x=ALIGN_X_CENTER, align_y=ALIGN_Y_CENTER, rotate=0):
+        assert align_x in [TextBox.ALIGN_X_CENTER, TextBox.ALIGN_X_LEFT, TextBox.ALIGN_X_RIGHT]
+        assert align_y in [TextBox.ALIGN_Y_CENTER, TextBox.ALIGN_Y_TOP, TextBox.ALIGN_Y_BOTTOM]
+
         super().__init__(x, y, width, height)
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
         self.text = text
         self.bg_color = bg_color
         self.fg_color = fg_color
         self._my_font = pygame.font.Font(None, size)
-        self._align_x = align_x
-        self._align_y = align_y
+        self.align_x = align_x
+        self.align_y = align_y
+        self._rotate = rotate
+
+    def set_align(self, align_x, align_y):
+        dict = {}
+        if align_x == TextBox.ALIGN_X_LEFT:
+            dict["left"] = self.x
+        elif align_x == TextBox.ALIGN_X_RIGHT:
+            dict["right"] = self.x
+        else:
+            dict["centerx"] = self.x
+
+        if align_y == TextBox.ALIGN_Y_TOP:
+            dict["top"] = self.y
+        elif align_y == TextBox.ALIGN_Y_BOTTOM:
+            dict["bottom"] = self.y
+        else:
+            dict["centery"] = self.y
+        return dict
 
     def enable(self, event_handler):
         super().enable(event_handler)
@@ -143,24 +159,21 @@ class TextBox(Drawable):
 
     def draw(self, surface):
         super().draw(surface)
-        if self._align_x == TextBox.ALIGN_CENTER:
-            # TODO fix this
-            # rect = (self.x, self.y, self.width, self.height)
-            # pygame.draw.rect(surface, self.bg_color, rect)
-            text_surface = self._my_font.render(self.text, True, self.fg_color)
-            text_rect = text_surface.get_rect(center=[self.x, self.y])
-            surface.blit(text_surface, text_rect)
-        elif self._align_x == TextBox.ALIGN_LEFT:
-            # TODO fix this
-            # rect = (self.x, self.y, self.width, self.height)
-            # pygame.draw.rect(surface, self.bg_color, rect)
-            text_surface = self._my_font.render(self.text, True, self.fg_color)
-            text_rect = text_surface.get_rect(left=self.x, centery=self.y)
-            surface.blit(text_surface, text_rect)
-        elif self._align_x == TextBox.ALIGN_RIGHT:
-            raise NotImplemented
-        else:
-            raise Exception
+        # if (self._rotate % 90) == 0:
+        #     if ((self._rotate / 90) % 2) == 0:
+        #         rect = (self.x, self.y, self.width, self.height)
+        #     else:
+        #         rect = (self.x, self.y, self.height, self.width)
+        #
+        #     pygame.draw.rect(surface, self.bg_color, rect)
+        text_surface = self._my_font.render(self.text, True, self.fg_color)
+        text_surface = pygame.transform.rotate(text_surface, self._rotate)
+        align = self.set_align(self.align_x, self.align_y)
+        text_rect = text_surface.get_rect(**align)
+        surface.blit(text_surface, text_rect)
+
+    # def rotate_rect(self, rect, ):
+
 
     def position_inside(self, position):
         pass
