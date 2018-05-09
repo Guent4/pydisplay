@@ -1,16 +1,21 @@
 import collections
+import functools
 import inspect
 import os
 import re
-
-import select
 import stat
 import threading
 
-import pygame
-
 import Colors
 import Drawables
+
+
+class Sorting(object):
+    FIFO = 0
+    LIFO = 1
+    ASCENDING = 2
+    DESCENDING = 3
+    OTHER = -1
 
 
 class Chart(Drawables.Drawable):
@@ -26,10 +31,13 @@ class Chart(Drawables.Drawable):
         self._fg_color = fg_color
         self._cell_heights = cell_heights
 
-        self._drawables = {"horizontal": [], "vertical": [], "headers": [], "data": []}
+        self._drawables = {"horizontal": [], "vertical": [], "headers": [], "data": {}}
 
         self.datasets = collections.OrderedDict()
         self.fifo_sources = []
+        self._can_add_more_datasets = True
+
+        self._sorting_scheme = {"sorting_scheme": Sorting.FIFO, "dataset_name": None, "other_compare_func": None}
 
     def draw(self, surface):
         super().draw(surface)
@@ -40,8 +48,9 @@ class Chart(Drawables.Drawable):
             line.draw(surface)
         for text in self._drawables["headers"]:
             text.draw(surface)
-        for text in self._drawables["data"]:
-            text.draw(surface)
+        for dataset_texts in self._drawables["data"].values():
+            for text in dataset_texts:
+                text.draw(surface)
 
     def move(self, dx, dy):
         super().move(dx, dy)
@@ -52,8 +61,9 @@ class Chart(Drawables.Drawable):
             line.move(dx, dy)
         for text in self._drawables["headers"]:
             text.move(dx, dy)
-        for text in self._drawables["data"]:
-            text.move(dx, dy)
+        for dataset_texts in self._drawables["data"].values():
+            for text in dataset_texts:
+                text.move(dx, dy)
 
     def exit(self):
         for fifo_source in self.fifo_sources:
@@ -67,14 +77,11 @@ class Chart(Drawables.Drawable):
     def setup_new_data_source(self, fifo_source, new_data_callback):
         assert os.path.exists(fifo_source) and stat.S_ISFIFO(os.stat(fifo_source).st_mode)
 
-        print(fifo_source)
         self.fifo_sources.append(fifo_source)
-        print(self.fifo_sources)
 
         def _get_new_data():
             while True:
                 with open(fifo_source, "r") as fifo:
-                    print("opened")
                     while True:
                         data = fifo.read().rstrip("\n")
                         if len(data) == 0:
@@ -100,6 +107,7 @@ class Chart(Drawables.Drawable):
         assert data_align_x in (Drawables.Text.ALIGN_X_LEFT, Drawables.Text.ALIGN_X_CENTER, Drawables.Text.ALIGN_X_RIGHT)
         assert sum([dataset["cell_width"] for dataset in self.datasets.values()]) + cell_width <= self.width
         assert all([len(data) == len(dataset["data"]) for dataset in self.datasets.values()])
+        assert self._can_add_more_datasets
 
         # To pad left and right if alignments are selected to be to left and right
         pad = 4
@@ -132,18 +140,25 @@ class Chart(Drawables.Drawable):
                                                          align_x=header_align_x, align_y=Drawables.Text.ALIGN_Y_CENTER))
 
         # Deal with data
+        data_drawables = []
         for i, datum in enumerate(data):
-            self._drawables["data"].append(Drawables.Text(x_values[data_align_x], self.y + (i + 1.5) * self._cell_heights,
-                                                          formatting.format(datum), font_size=data_font_size, fg_color=fg_color,
-                                                          align_x=data_align_x, align_y=Drawables.Text.ALIGN_Y_CENTER))
+            data_drawables.append(Drawables.Text(x_values[data_align_x], self.y + (i + 1.5) * self._cell_heights,
+                                                 formatting.format(datum), font_size=data_font_size, fg_color=fg_color,
+                                                 align_x=data_align_x, align_y=Drawables.Text.ALIGN_Y_CENTER))
+        self._drawables["data"][name] = data_drawables
 
         # Store the input values
-        self.datasets[name] = {"data": data, "bg_color": bg_color, "fg_color": fg_color, "formatting": formatting,
-                               "cell_width": cell_width, "data_font_size": data_font_size, "pad": pad,
+        self.datasets[name] = {"data": data, "insertion_order": range(len(data)), "bg_color": bg_color, "fg_color": fg_color,
+                               "formatting": formatting, "cell_width": cell_width, "data_font_size": data_font_size, "pad": pad,
                                "header_align_x": header_align_x, "data_align_x": data_align_x}
+
+        self._sort()
 
     def add_datum(self, values):
         assert isinstance(values, dict) and values.keys() == self.datasets.keys()
+
+        # Mark that you can't add more datasets
+        self._can_add_more_datasets = False
 
         # Extend old vertical lines
         for vertical in self._drawables["vertical"]:
@@ -166,20 +181,86 @@ class Chart(Drawables.Drawable):
             y_value = self.y + (len(dataset["data"]) + 1.5) * self._cell_heights
 
             dataset["data"].append(value)
+            dataset["insertion_order"].append(max(dataset["insertion_order"]) + 1)
             data_text = Drawables.Text(x_values[dataset["data_align_x"]], y_value, dataset["formatting"].format(value),
                                        dataset["data_font_size"], fg_color=dataset["fg_color"],
                                        align_x=dataset["data_align_x"], align_y=Drawables.Text.ALIGN_Y_CENTER)
-            self._drawables["data"].append(data_text)
+            self._drawables["data"][dataset_name].append(data_text)
 
             column_x += dataset["cell_width"]
 
+        # Since new datapoint, sort if not FIFO
+        if self._sorting_scheme != Sorting.FIFO:
+            self._sort()
 
-class Sorting(object):
-    FIFO = 0
-    LIFO = 1
-    ASCENDING = 2
-    DESCENDING = 3
-    OTHER = -1
+    def add_sorting_scheme(self, sorting_scheme, dataset_name=None, other_compare_func=None):
+        assert sorting_scheme in [Sorting.FIFO, Sorting.LIFO, Sorting.ASCENDING, Sorting.DESCENDING, Sorting.OTHER]
+        if sorting_scheme == Sorting.FIFO or sorting_scheme == Sorting.LIFO:
+            assert dataset_name is None and other_compare_func is None
+        elif sorting_scheme == Sorting.ASCENDING or sorting_scheme == Sorting.DESCENDING:
+            assert dataset_name is not None and dataset_name in self.datasets and other_compare_func is None
+        else:
+            assert dataset_name is not None and dataset_name in self.datasets and other_compare_func is not None
+            assert callable(other_compare_func) and len(inspect.getfullargspec(other_compare_func).args) == 2
 
-    def __init__(self, policy, column_name):
-        pass
+        self._sorting_scheme["sorting_scheme"] = sorting_scheme
+        self._sorting_scheme["dataset_name"] = dataset_name
+        self._sorting_scheme["other_compare_func"] = other_compare_func
+
+        # Sort the rows
+        self._sort()
+
+    def _sort(self):
+        if self._sorting_scheme["sorting_scheme"] == Sorting.FIFO:
+            for dataset_name, dataset in self.datasets.items():
+                zipped = zip(dataset["data"], dataset["insertion_order"])
+                zipped = sorted(zipped, key=lambda x: x[1])
+                dataset["data"] = [x[0] for x in zipped]
+                dataset["insertion_order"] = [x[1] for x in zipped]
+        elif self._sorting_scheme["sorting_scheme"] == Sorting.LIFO:
+            for dataset_name, dataset in self.datasets.items():
+                zipped = zip(dataset["data"], dataset["insertion_order"])
+                zipped = sorted(zipped, key=lambda x: x[1], reverse=True)
+                dataset["data"] = [x[0] for x in zipped]
+                dataset["insertion_order"] = [x[1] for x in zipped]
+        elif self._sorting_scheme["sorting_scheme"] == Sorting.ASCENDING:
+            dataset_name_sorting = self._sorting_scheme["dataset_name"]
+            dataset_sorting = self.datasets[dataset_name_sorting]
+            zipped_sorting = zip(dataset_sorting["data"], dataset_sorting["insertion_order"])
+            zipped_sorting = sorted(zipped_sorting, key=lambda x: x[0])
+            insertion_order_sorting = [x[1] for x in zipped_sorting]
+            for dataset_name, dataset in self.datasets.items():
+                zipped = zip(dataset["data"], dataset["insertion_order"])
+                zipped = sorted(zipped, key=lambda x: x[1])
+                dataset["data"] = [zipped[i][0] for i in insertion_order_sorting]
+                dataset["insertion_order"] = insertion_order_sorting
+        elif self._sorting_scheme["sorting_scheme"] == Sorting.DESCENDING:
+            dataset_name_sorting = self._sorting_scheme["dataset_name"]
+            dataset_sorting = self.datasets[dataset_name_sorting]
+            zipped_sorting = zip(dataset_sorting["data"], dataset_sorting["insertion_order"])
+            zipped_sorting = sorted(zipped_sorting, key=lambda x: x[0], reverse=True)
+            insertion_order_sorting = [x[1] for x in zipped_sorting]
+            for dataset_name, dataset in self.datasets.items():
+                zipped = zip(dataset["data"], dataset["insertion_order"])
+                zipped = sorted(zipped, key=lambda x: x[1])
+                dataset["data"] = [zipped[i][0] for i in insertion_order_sorting]
+                dataset["insertion_order"] = insertion_order_sorting
+        elif self._sorting_scheme["sorting_scheme"] == Sorting.OTHER:
+            dataset_name_sorting = self._sorting_scheme["dataset_name"]
+            dataset_sorting = self.datasets[dataset_name_sorting]
+            zipped_sorting = zip(dataset_sorting["data"], dataset_sorting["insertion_order"])
+            zipped_sorting = sorted(zipped_sorting, key=functools.cmp_to_key(self._sorting_scheme["other_compare_func"]))
+            insertion_order_sorting = [x[1] for x in zipped_sorting]
+            for dataset_name, dataset in self.datasets.items():
+                zipped = zip(dataset["data"], dataset["insertion_order"])
+                zipped = sorted(zipped, key=lambda x: x[1])
+                dataset["data"] = [zipped[i][0] for i in insertion_order_sorting]
+                dataset["insertion_order"] = insertion_order_sorting
+        else:
+            raise ValueError
+
+        # Update the actual items in the chart
+        for dataset_name, dataset in self.datasets.items():
+            texts = self._drawables["data"][dataset_name]
+            for datum, text in zip(dataset["data"], texts):
+                text.text = dataset["formatting"].format(datum)

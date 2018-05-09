@@ -56,7 +56,7 @@ class TempPage1(Pages.Page):
         self.scatter.set_x_label("x axis")
         self.scatter.set_y_label("y axis")
         self.scatter.add_dataset("test", [0, 1, 2, 3, -1, -2, -3], [0, 1, 2, 3, -1, -2, -3])
-        self.scatter.setup_new_data_source("test", TempPage1._new_data_from_fifo)
+        # self.scatter.setup_new_data_source("test", TempPage1._new_data_from_fifo)
 
         self.line = Graphs.Line(0, 0, *self.page_size)
         self.line.set_title("TEST")
@@ -79,7 +79,6 @@ class TempPage1(Pages.Page):
     @staticmethod
     def _new_data_from_fifo(graph, fifo_source, data):
         assert isinstance(graph, Graphs.Graph)
-        print(graph)
         print("New data from {}: '{}'".format(fifo_source, data))
         x_value, y_value = list(map(float, data.split(" ")))
         graph.add_datum("test", x_value, y_value)
@@ -118,9 +117,14 @@ class TempPage3(Pages.Page):
         self.chart = Chart.Chart(0, 0, *page_size)
         self.chart.add_dataset("test1", [0, 1, 2, 3, -1, -2, -3])
         self.chart.add_dataset("test2", [0, 1, 2, 3, -1, -2, -3])
-        # self.chart.setup_new_data_source("test", TempPage3._new_data_from_fifo)
+        self.chart.add_sorting_scheme(Chart.Sorting.OTHER, "test1", TempPage3._compare)
+        self.chart.setup_new_data_source("test", TempPage3._new_data_from_fifo)
 
         self._drawables.append(self.chart)
+
+    @staticmethod
+    def _compare(a, b):
+        return abs(a[0]) - abs(b[0])
 
     @staticmethod
     def _new_data_from_fifo(chart, fifo_source, data):
