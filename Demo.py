@@ -1,5 +1,6 @@
 import argparse
 
+import Chart
 import Colors
 import Constants
 import Drawables
@@ -54,9 +55,8 @@ class TempPage1(Pages.Page):
         self.scatter.set_title("TEST")
         self.scatter.set_x_label("x axis")
         self.scatter.set_y_label("y axis")
-        self.scatter.create_plot()
         self.scatter.add_dataset("test", [0, 1, 2, 3, -1, -2, -3], [0, 1, 2, 3, -1, -2, -3])
-        # self.scatter.setup_new_data_source("test", TempPage1._new_data_from_fifo)
+        self.scatter.setup_new_data_source("test", TempPage1._new_data_from_fifo)
 
         self.line = Graphs.Line(0, 0, *self.page_size)
         self.line.set_title("TEST")
@@ -70,7 +70,6 @@ class TempPage1(Pages.Page):
         self.bar.set_title("TEST")
         self.bar.set_x_label("x axis")
         self.bar.set_y_label("y axis")
-        self.bar.create_plot()
         self.bar.add_dataset("test", [0, 1, 2, 3, -1, -2, -3], [0, 1, 2, 3, -1, -2, -3], color=Colors.BLUE)
 
         self._drawables.append(self.scatter)
@@ -111,6 +110,26 @@ class TempPage2(Pages.Page):
         print("Button 27 pressed for {}!".format(event.duration))
 
 
+class TempPage3(Pages.Page):
+    def __init__(self, pydisplay, event_handler):
+        page_size = (Constants.PI_TFT_SCREEN_SIZE[0], Constants.PI_TFT_SCREEN_SIZE[1] - Pages.PageManager.SWITCHER_HEIGHT)
+        super().__init__(pydisplay, event_handler, "temp3", page_size, Colors.BLACK)
+
+        self.chart = Chart.Chart(0, 0, *page_size)
+        self.chart.add_dataset("test1", [0, 1, 2, 3, -1, -2, -3])
+        self.chart.add_dataset("test2", [0, 1, 2, 3, -1, -2, -3])
+        # self.chart.setup_new_data_source("test", TempPage3._new_data_from_fifo)
+
+        self._drawables.append(self.chart)
+
+    @staticmethod
+    def _new_data_from_fifo(chart, fifo_source, data):
+        assert isinstance(chart, Chart.Chart)
+        values = list(map(float, data.split(" ")))
+        values_dict = {"test1": values[0], "test2": values[1]}
+        chart.add_datum(values_dict)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--not_on_pitft", action='store_true', help="Don't run on piTFT screen?")
@@ -119,8 +138,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    page_classes = [TempPage1, TempPage2]
-    page_class_args = [[], []]
+    page_classes = [TempPage3, TempPage1, TempPage2]
+    page_class_args = [[], [], []]
     pydisplay = PyDisplay.PyDisplay(not args.not_on_pitft, not args.disable_touchscreen, not args.disable_button)
     pydisplay.setup_pages(page_classes, page_class_args, Pages.PageManager.SWITCHER_LOCATIONS["BOTTOM"])
     pydisplay.run()

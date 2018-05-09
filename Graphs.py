@@ -1,5 +1,5 @@
+import collections
 import os
-import select
 import stat
 import threading
 
@@ -27,14 +27,13 @@ class Graph(Drawables.Drawable):
         super(Graph, self).__init__(x, y, width, height)
 
         self._plot = {"x": 0, "y": 0, "width": 0, "height": 0, "bg_color": None, "fg_color": None}
-        self._axis = {"x_min": 0, "x_max": 0, "x_interval": 0, "y_min": 0, "y_max": 0, "y_interval": 0}
+        self._axis = {"x_min": -10, "x_max": 10, "x_interval": 2, "y_min": -7, "y_max": 7, "y_interval": 2}
         self._drawables = {"title": None, "x_label": None, "y_label": None, "x_axis": None, "y_axis": None,
                            "x_ticks": [], "x_numbers": [], "y_ticks": [], "y_numbers": []}
 
         self.create_plot()
-        self.set_bounds(x_min=-10, x_max=10, x_interval=2, y_min=-7, y_max=7, y_interval=2)
 
-        self.datasets = dict()
+        self.datasets = collections.OrderedDict()
         self.fifo_sources = []
 
     def create_plot(self, offset_left=30, offset_right=10, offset_top=30, offset_bottom=30, bg_color=Colors.BLACK, fg_color=Colors.WHITE):
@@ -45,6 +44,9 @@ class Graph(Drawables.Drawable):
         self._plot["bg_color"] = bg_color
         self._plot["fg_color"] = fg_color
 
+        # Regenerate the stuff
+        self.set_bounds()
+
     def set_bounds(self, x_min=None, x_max=None, x_interval=None, y_min=None, y_max=None, y_interval=None):
         if x_min is None: x_min = self._axis["x_min"]
         if x_max is None: x_max = self._axis["x_max"]
@@ -54,8 +56,8 @@ class Graph(Drawables.Drawable):
         if y_interval is None: y_interval = self._axis["y_interval"]
 
         # Make sure the inputs are reasonable
-        assert x_max > x_min and x_interval > 0
-        assert y_max > y_min and y_interval > 0
+        assert x_max > x_min and x_interval > 0, (x_min, x_max, x_interval)
+        assert y_max > y_min and y_interval > 0, (y_min, y_max, y_interval)
 
         # Store the variables
         self._axis["x_min"] = x_min
@@ -99,7 +101,7 @@ class Graph(Drawables.Drawable):
         for tick_x, tick_value in zip(x_ticks_x, x_ticks_values):
             self._drawables["x_ticks"].append(Drawables.Line(tick_x, plot_y + height - 4, 0, 4, self._plot["fg_color"]))
             self._drawables["x_numbers"].append(
-                Drawables.Text(x=tick_x, y=plot_y + height + 2, text=str(tick_value), font_size=10, fg_color=self._plot["fg_color"],
+                Drawables.Text(x=tick_x, y=plot_y + height + 2, text=str(tick_value), font_size=12, fg_color=self._plot["fg_color"],
                                align_x=Drawables.Text.ALIGN_X_CENTER, align_y=Drawables.Text.ALIGN_Y_TOP)
             )
 
@@ -120,7 +122,7 @@ class Graph(Drawables.Drawable):
         for tick_y, tick_value in zip(y_ticks_y, y_ticks_values):
             self._drawables["y_ticks"].append(Drawables.Line(plot_x, tick_y, 4, 0, self._plot["fg_color"]))
             self._drawables["y_numbers"].append(
-                Drawables.Text(x=plot_x - 2, y=tick_y, text=str(tick_value), font_size=10, fg_color=self._plot["fg_color"],
+                Drawables.Text(x=plot_x - 2, y=tick_y, text=str(tick_value), font_size=12, fg_color=self._plot["fg_color"],
                                align_x=Drawables.Text.ALIGN_X_RIGHT, align_y=Drawables.Text.ALIGN_Y_CENTER)
             )
 
@@ -179,25 +181,22 @@ class Graph(Drawables.Drawable):
     def setup_new_data_source(self, fifo_source, new_data_callback):
         assert os.path.exists(fifo_source) and stat.S_ISFIFO(os.stat(fifo_source).st_mode)
 
-        self.fifo_sources = self.fifo_sources.append(fifo_source)
+        self.fifo_sources.append(fifo_source)
 
         def _get_new_data():
-            try:
-                while True:
-                    with open(fifo_source, "r") as fifo:
-                        while True:
-                            data = fifo.read().rstrip("\n")
-                            if len(data) == 0:
-                                break
+            while True:
+                with open(fifo_source, "r") as fifo:
+                    while True:
+                        data = fifo.read().rstrip("\n")
+                        if len(data) == 0:
+                            break
 
-                            # Check if the fifo is actually initiating closing
-                            if data == Graph.FIFO_CLOSING_COMMAND:
-                                return
+                        # Check if the fifo is actually initiating closing
+                        if data == Graph.FIFO_CLOSING_COMMAND:
+                            return
 
-                            # Data arrived so run the callback with the new data
-                            new_data_callback(self, fifo_source, data)
-            except:
-                print("{} closed!".format(fifo_source))
+                        # Data arrived so run the callback with the new data
+                        new_data_callback(self, fifo_source, data)
 
         # Checking for new data needs to be done in a new thread so the select statement can block
         threading.Thread(target=_get_new_data).start()

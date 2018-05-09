@@ -49,6 +49,9 @@ class PyDisplay(object):
         self.page_manager = Pages.PageManager(self._event_handler, pages, page_manager_location)
 
     def exit(self):
+        if not self._alive:
+            return
+
         self._alive = False
 
         # Stop the event handler and controllers
