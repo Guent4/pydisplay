@@ -119,7 +119,7 @@ class EventHandler(object):
 
     def register_event(self, obj, event_type, callback):
         assert EventTypes.is_valid_event_type(event_type)
-        assert len(inspect.getfullargspec(callback).args) == 2
+        assert callable(callback) and len(inspect.getfullargspec(callback).args) == 2
 
         self._register_list.append((obj, event_type, callback))
 
