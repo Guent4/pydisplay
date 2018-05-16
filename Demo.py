@@ -122,7 +122,7 @@ class TempPage3(Pages.Page):
         self.chart.add_dataset("test1", [0, 1, 2, 3, -1, -2, -3])
         self.chart.add_dataset("test2", [0, 1, 2, 3, -1, -2, -3])
         self.chart.add_sorting_scheme(Chart.Sorting.OTHER, "test1", TempPage3._compare)
-        self.chart.setup_new_data_source("test", TempPage3._new_data_from_fifo)
+        # self.chart.setup_new_data_source("test", TempPage3._new_data_from_fifo)
 
         self._drawables.append(self.chart)
 

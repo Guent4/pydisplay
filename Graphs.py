@@ -31,7 +31,11 @@ class Graph(Drawables.Drawable):
         self._drawables = {"title": None, "x_label": None, "y_label": None, "x_axis": None, "y_axis": None,
                            "x_ticks": [], "x_numbers": [], "y_ticks": [], "y_numbers": []}
 
-        self.x_tick_distance, self.y_tick_distance = self.create_plot()
+        self.x_tick_distance = 0
+        self.y_tick_distance = 0
+
+        self.update_distance_between_ticks()
+        self.create_plot()
 
         self.datasets = collections.OrderedDict()
         self.fifo_sources = []
@@ -78,8 +82,10 @@ class Graph(Drawables.Drawable):
         self._drawables["x_axis"] = Drawables.Line(plot_x, self._axis["x_axis_y"], width, 0, self._plot["fg_color"])
         self._drawables["y_axis"] = Drawables.Line(self._axis["y_axis_x"], plot_y, 0, height, self._plot["fg_color"])
 
+        self.update_distance_between_ticks()
+
         # Figure out x tick marks
-        x_ticks_x, x_ticks_values, x_tick_distance = self.tick_marks(x_min, x_max, x_interval, 0)
+        x_ticks_x, x_ticks_values = self.tick_marks(x_min, x_max, x_interval, 0)
         for tick_x, tick_value in zip(x_ticks_x, x_ticks_values):
             self._drawables["x_ticks"].append(Drawables.Line(tick_x, plot_y + height - 4, 0, 4, self._plot["fg_color"]))
             self._drawables["x_numbers"].append(
@@ -89,7 +95,7 @@ class Graph(Drawables.Drawable):
             )
 
         # Figure out y tick marks
-        y_ticks_y, y_ticks_values, y_tick_distance = self.tick_marks(y_min, y_max, y_interval, 1)
+        y_ticks_y, y_ticks_values = self.tick_marks(y_min, y_max, y_interval, 1)
         for tick_y, tick_value in zip(y_ticks_y, y_ticks_values):
             self._drawables["y_ticks"].append(Drawables.Line(plot_x, tick_y, 4, 0, self._plot["fg_color"]))
             self._drawables["y_numbers"].append(
@@ -97,11 +103,8 @@ class Graph(Drawables.Drawable):
                                fg_color=self._plot["fg_color"],
                                align_x=Drawables.Text.ALIGN_X_RIGHT, align_y=Drawables.Text.ALIGN_Y_CENTER)
             )
-        return x_tick_distance, y_tick_distance
 
     def tick_marks(self, low, high, interval, xory):
-        width = self._plot["width"]
-        height = self._plot["height"]
         if low <= 0 and high <= 0:
             num_ticks = abs(high - low) / interval
             ticks_values = [high - i * interval for i in range(int(num_ticks), -1, -1)]
@@ -113,15 +116,42 @@ class Graph(Drawables.Drawable):
             num_ticks_negative = abs(low) / interval
             ticks_values = [-i * interval for i in range(int(num_ticks_negative), -1, -1)]
             ticks_values.extend([i * interval for i in range(int(num_ticks_positive) + 1)])
-            num_ticks = num_ticks_negative + num_ticks_positive
         ticks_values = list(set(ticks_values))
         if xory == 0:
             ticks = [self._datum_position(ticks_value,0)[xory] for ticks_value in ticks_values]
-            tick_distance = width / num_ticks
         else:
             ticks = [self._datum_position(0, ticks_value)[xory] for ticks_value in ticks_values]
-            tick_distance = height / num_ticks
-        return ticks, ticks_values, tick_distance
+        return ticks, ticks_values
+
+    def update_distance_between_ticks(self):
+        x_min = self._axis["x_min"]
+        x_max = self._axis["x_max"]
+        x_interval = self._axis["x_interval"]
+        y_min = self._axis["y_min"]
+        y_max = self._axis["y_max"]
+        y_interval = self._axis["y_interval"]
+        width = self._plot["width"]
+        height = self._plot["height"]
+
+        if x_min <= 0 and x_max <= 0:
+            x_num_ticks = abs(x_max - x_min) / x_interval
+        elif x_min >= 0 and x_max >= 0:
+            x_num_ticks = abs(x_max - x_min) / x_interval
+        else:
+            num_ticks_positive = x_max / x_interval
+            num_ticks_negative = abs(x_min) / x_interval
+            x_num_ticks = num_ticks_negative + num_ticks_positive
+        self.x_tick_distance = width / x_num_ticks
+
+        if y_min <= 0 and y_max <= 0:
+            y_num_ticks = abs(y_max - y_min) / y_interval
+        elif y_min >= 0 and y_max >= 0:
+            y_num_ticks = abs(y_max - y_min) / y_interval
+        else:
+            num_ticks_positive = y_max / y_interval
+            num_ticks_negative = abs(y_min) / y_interval
+            y_num_ticks = num_ticks_negative + num_ticks_positive
+        self.y_tick_distance = height / y_num_ticks
 
     def draw(self, surface):
         super().draw(surface)
