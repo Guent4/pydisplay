@@ -10,6 +10,9 @@ import Drawables
 
 
 class GraphTypes(object):
+    """
+    All of the graph types supported
+    """
     SCATTER = 0
     BAR = 1
     HISTOGRAM = 2
@@ -17,12 +20,16 @@ class GraphTypes(object):
 
 
 class Graph(Drawables.Drawable):
+    # This is the restricted word that you should not send to the fifo; when this command is read, the data feed closes
     FIFO_CLOSING_COMMAND = "CLOSING"
 
     def __init__(self, x, y, width, height):
         """
-        Note here that x and y are the top left coordinate of the entire Graph, not data_x and data_y or where the
-        the plot is within the graph
+        Create a graph with an option of multiple datasets.
+        :param x: The x coordinate of the top left corner of the graph
+        :param y: The y coordinate of the top left corner of the graph
+        :param width: The width of the graph
+        :param height: The height of the graph
         """
         super(Graph, self).__init__(x, y, width, height)
 
@@ -36,18 +43,39 @@ class Graph(Drawables.Drawable):
         self.datasets = collections.OrderedDict()
         self.fifo_sources = []
 
-    def create_plot(self, offset_left=30, offset_right=10, offset_top=30, offset_bottom=30, bg_color=Colors.BLACK, fg_color=Colors.WHITE):
+    def create_plot(self, offset_left=30, offset_right=10, offset_top=30, offset_bottom=30, fg_color=Colors.WHITE):
+        """
+        Define the plot area (the area that the graph actually exists; does not include the axes labels, titles, tick
+        labels).  The defaults are customized for the PiTFT screen with a PageManger switcher bar
+        :param offset_left: How much the left side of the plot should be offset from the left side of the graph
+        :param offset_right: How much the right side of the plot should be offset from the right side of the graph
+        :param offset_top: How much the top of the plot should be offset from the top of the graph
+        :param offset_bottom: How much the bottom of the plot should be offset from the bottom of the graph
+        :param fg_color: The color of the plot (this would define the axes colors and default label colors
+        :return: None
+        """
         self._plot["offset_x"] = offset_left
         self._plot["offset_y"] = offset_top
         self._plot["width"] = self.width - offset_right - offset_left
         self._plot["height"] = self.height - offset_top - offset_bottom
-        self._plot["bg_color"] = bg_color
         self._plot["fg_color"] = fg_color
 
         # Regenerate the stuff
         self.set_bounds()
 
     def set_bounds(self, x_min=None, x_max=None, x_interval=None, y_min=None, y_max=None, y_interval=None):
+        """
+        Set bounds for the two axes and the tick interval.  This does a lot of the calculations and creates the
+        Drawables that are needed for the plot (axes, ticks, tick labels).  Call this method again when any of the
+        bounds change.
+        :param x_min: Minimum x value
+        :param x_max: Maximum x value (must be greater than x_min)
+        :param x_interval: Amount between tick marks on x axis (must be greater than 0)
+        :param y_min: Minimum y value
+        :param y_max: Maximum y value (must be greater than y_min)
+        :param y_interval: Amount between tick marks on y axis (must be greater than 0)
+        :return: None
+        """
         if x_min is None: x_min = self._axis["x_min"]
         if x_max is None: x_max = self._axis["x_max"]
         if x_interval is None: x_interval = self._axis["x_interval"]
@@ -127,6 +155,11 @@ class Graph(Drawables.Drawable):
             )
 
     def draw(self, surface):
+        """
+        Draw the graph.  This graph has a list of its own drawables so it needs to draw those too
+        :param surface: The surface onto which the chart should be drawn
+        :return: None
+        """
         super().draw(surface)
 
         if self._drawables["title"] is not None: self._drawables["title"].draw(surface)
@@ -147,6 +180,12 @@ class Graph(Drawables.Drawable):
 
 
     def move(self, dx, dy):
+        """
+        Overrides the Drawable move function.  This graph has a bunch of its own drawables so it needs to move those too
+        :param dx: The amount things should move in the x direction (positive or negative float)
+        :param dy: The amount things should move in the y direction (positive or negative float)
+        :return: None
+        """
         super().move(dx, dy)
 
         # Need to update values for x_axis_y and y_axis_x
@@ -170,6 +209,10 @@ class Graph(Drawables.Drawable):
             number.move(dx, dy)
 
     def exit(self):
+        """
+        Exit out of this graph. This involves closing the fifo data feed
+        :return: None
+        """
         for fifo_source in self.fifo_sources:
             if not (os.path.exists(fifo_source) and stat.S_ISFIFO(os.stat(fifo_source).st_mode)):
                 continue
@@ -179,6 +222,15 @@ class Graph(Drawables.Drawable):
                 fifo.write(Graph.FIFO_CLOSING_COMMAND)
 
     def setup_new_data_source(self, fifo_source, new_data_callback):
+        """
+        Set up a new data_source/data feed.  This new source must be a fifo from which this function will automatically
+        and continuously try to read from in a new thread until this Graph is exited.  When there is a new data point,
+        the new_data_callback function will be triggered and you can define what to do in that (though you probably will
+        want to call the add_datum function)
+        :param fifo_source: The filepath (relative or absolute) to the data source
+        :param new_data_callback: The callback function that will process the data read from the fifo
+        :return: None
+        """
         assert os.path.exists(fifo_source) and stat.S_ISFIFO(os.stat(fifo_source).st_mode)
 
         self.fifo_sources.append(fifo_source)
@@ -202,6 +254,14 @@ class Graph(Drawables.Drawable):
         threading.Thread(target=_get_new_data).start()
 
     def add_dataset(self, name, x_data, y_data, color=Colors.GREEN):
+        """
+        Add a new dataset with its own custom color
+        :param name: Name of the dataset (must be unique)
+        :param x_data: List of x data values
+        :param y_data: List of y data values
+        :param color: Color scheme for this dataset
+        :return: None
+        """
         assert isinstance(name, str) and name not in self.datasets
         assert isinstance(x_data, list) and all([isinstance(x, int) or isinstance(x, float) for x in x_data])
         assert isinstance(y_data, list) and all([isinstance(y, int) or isinstance(y, float) for y in y_data])
@@ -210,6 +270,13 @@ class Graph(Drawables.Drawable):
         self.datasets[name] = {"color": color, "xs": x_data, "ys":y_data}
 
     def add_datum(self, dataset_name, x_value, y_value):
+        """
+        Add a new data point.
+        :param dataset_name: The dataset this data point belongs to
+        :param x_value: The x value
+        :param y_value: The y value
+        :return: None
+        """
         if dataset_name in self.datasets:
             self.datasets[dataset_name]["xs"].append(x_value)
             self.datasets[dataset_name]["ys"].append(y_value)
@@ -217,12 +284,28 @@ class Graph(Drawables.Drawable):
             self.datasets[dataset_name] = {"color": Colors.GREEN, "xs": [x_value], "ys": [y_value]}
 
     def set_title(self, text, distance_from_top_of_graph=5, font_size=20, fg_color=None):
+        """
+        Set the title of the graph.
+        :param text: The text to display
+        :param distance_from_top_of_graph: Distance top of text is from the top of graph
+        :param font_size: Font size
+        :param fg_color: Font color
+        :return: None
+        """
         fg_color = self._plot["fg_color"] if fg_color is None else fg_color
         self._drawables["title"] = Drawables.Text(x=self.width / 2, y=self.y + distance_from_top_of_graph,
                                                   text=text, font_size=font_size, fg_color=fg_color,
                                                   align_x=Drawables.Text.ALIGN_X_CENTER, align_y=Drawables.Text.ALIGN_Y_TOP)
 
     def set_x_label(self, text, distance_from_bottom_of_graph=5, font_size=15, fg_color=None):
+        """
+        Set the x label (this will be centered at the bottom of the chart)
+        :param text: Text to display
+        :param distance_from_bottom_of_graph: Distance bottom of text is from bottom of graph
+        :param font_size: Font size
+        :param fg_color: Font color
+        :return: None
+        """
         x = self.x + self._plot["offset_x"] + self._plot["width"] / 2
         y = self.y + self.height - distance_from_bottom_of_graph
         fg_color = self._plot["fg_color"] if fg_color is None else fg_color
@@ -230,6 +313,14 @@ class Graph(Drawables.Drawable):
                                                     align_x=Drawables.Text.ALIGN_X_CENTER, align_y=Drawables.Text.ALIGN_Y_BOTTOM)
 
     def set_y_label(self, text, distance_from_left_of_graph=5, font_size=15, fg_color=None):
+        """
+        Set the y label (this will be rotated and centered on the left of the chart)
+        :param text: Text to display
+        :param distance_from_left_of_graph: Distance top of text (upward direction of letters) is from left of graph
+        :param font_size: Font size
+        :param fg_color: Font color
+        :return: None
+        """
         x = self.x + distance_from_left_of_graph
         y = self.y + self._plot["offset_y"] + self._plot["height"] / 2
         fg_color = self._plot["fg_color"] if fg_color is None else fg_color
@@ -237,12 +328,25 @@ class Graph(Drawables.Drawable):
                                                     align_x=Drawables.Text.ALIGN_X_LEFT, align_y=Drawables.Text.ALIGN_Y_CENTER, rotate=90)
 
     def _datum_position(self, x_value, y_value):
+        """
+        Internal calculation.  Given a x value and a y value, calculate the position on the graph to display the point
+        :param x_value: x value of a data point
+        :param y_value: y value of a data point
+        :return: Tuple of x, y coordinate
+        """
+        assert isinstance(x_value, int) or isinstance(x_value, float)
+        assert isinstance(y_value, int) or isinstance(y_value, float)
+        # TODO handle the case when the data point is outside of the plot bounds
         x = self._axis["y_axis_x"] + x_value * (self._plot["width"] / abs(self._axis["x_max"] - self._axis["x_min"]))
         y = self._axis["x_axis_y"] - y_value * (self._plot["height"] / abs(self._axis["y_max"] - self._axis["y_min"]))
 
         return int(x), int(y)
 
     def _axis_value_calculate(self):
+        """
+        Internal calculation for getting some axes values.
+        :return: None
+        """
         # Local variables
         plot_x = self.x + self._plot["offset_x"]
         plot_y = self.y + self._plot["offset_y"]
@@ -272,9 +376,21 @@ class Graph(Drawables.Drawable):
 
 class Scatter(Graph):
     def __init__(self, x, y, width, height):
+        """
+        Create a scatter plot.
+        :param x: The x coordinate of the top left corner of the graph
+        :param y: The y coordinate of the top left corner of the graph
+        :param width: The width of the graph
+        :param height: The height of the graph
+        """
         super(Scatter, self).__init__(x, y, width, height)
 
     def draw(self, surface):
+        """
+        Customized draw function.
+        :param surface: The surface onto which the graph should be drawn
+        :return: None
+        """
         super().draw(surface)
 
         # Draw datapoints
@@ -290,9 +406,21 @@ class Scatter(Graph):
 
 class Line(Graph):
     def __init__(self, x, y, width, height):
+        """
+        Create a scatter plot.
+        :param x: The x coordinate of the top left corner of the graph
+        :param y: The y coordinate of the top left corner of the graph
+        :param width: The width of the graph
+        :param height: The height of the graph
+        """
         super(Line, self).__init__(x, y, width, height)
 
     def draw(self, surface):
+        """
+        Customized draw function.
+        :param surface: The surface onto which the graph should be drawn
+        :return: None
+        """
         super().draw(surface)
 
         # Draw datapoints
@@ -309,9 +437,21 @@ class Line(Graph):
 
 class Bar(Graph):
     def __init__(self, x, y, width, height):
+        """
+        Create a bar graph.
+        :param x: The x coordinate of the top left corner of the graph
+        :param y: The y coordinate of the top left corner of the graph
+        :param width: The width of the graph
+        :param height: The height of the graph
+        """
         super(Bar, self).__init__(x, y, width, height)
 
     def draw(self, surface):
+        """
+        Customized draw function.
+        :param surface: The surface onto which the graph should be drawn
+        :return: None
+        """
         super().draw(surface)
 
         # Draw datapoints
@@ -328,9 +468,21 @@ class Bar(Graph):
 
 class Histogram(Graph):
     def __init__(self, x, y, width, height):
+        """
+        Create a histogram plot.
+        :param x: The x coordinate of the top left corner of the graph
+        :param y: The y coordinate of the top left corner of the graph
+        :param width: The width of the graph
+        :param height: The height of the graph
+        """
         super(Histogram, self).__init__(x, y, width, height)
 
     def draw(self, surface):
+        """
+        Customized draw function.
+        :param surface: The surface onto which the graph should be drawn
+        :return: None
+        """
         super().draw(surface)
 
         # Draw datapoints

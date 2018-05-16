@@ -52,7 +52,7 @@ class Chart(Drawables.Drawable):
 
     def draw(self, surface):
         """
-        Draw the chart
+        Draw the chart.  This chart has a list of its own drawables so it needs to draw those too
         :param surface: The surface onto which the chart should be drawn
         :return: None
         """
@@ -73,7 +73,7 @@ class Chart(Drawables.Drawable):
         Overrides the Drawable move function.  This chart has a list of its own drawables so it needs to move those too
         :param dx: The amount things should move in the x direction (positive or negative float)
         :param dy: The amount things should move in the y direction (positive or negative float)
-        :return:
+        :return: None
         """
         super().move(dx, dy)
 
@@ -137,7 +137,7 @@ class Chart(Drawables.Drawable):
         """
         Add a new dataset (or column) to the chart.  Note that this funciton cannot be called after the add_datum
         function has been called.
-        :param name: Name of the column (will show up as a header)
+        :param name: Name of the column (will show up as a header and must be unique)
         :param data: A list of data points for this column (all columns must have the same number of datapoints.
         :param font_color: Color of the font of the text in this column
         :param formatting: If you wat custom formatting; for example, if you want percent signs, you can pass in "{}%"
