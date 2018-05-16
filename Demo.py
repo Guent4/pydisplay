@@ -88,7 +88,8 @@ class TempPage2(Pages.Page):
     def __init__(self, pydisplay, event_handler):
         super().__init__(pydisplay, event_handler, "temp1", (400, 300), Colors.BLACK)
 
-        self.button = Drawables.Button(50, 50, 100, 50, "Hello", 25, Colors.WHITE, Colors.BLUE, callback=self.button_callback)
+        self.button = Drawables.Button(50, 50, 100, 50, "Hello", 25, Colors.WHITE, Colors.BLUE,
+                                       callback=self.button_callback)
         self.textBox = Drawables.Text(50, 110, "textbox here", 15, Colors.RED, Drawables.Text.ALIGN_X_CENTER, Drawables.Text.ALIGN_Y_CENTER, rotate=90)
         self.textBox2 = Drawables.Text(200, 100, "textbox here", 15, Colors.WHITE, Drawables.Text.ALIGN_X_RIGHT, Drawables.Text.ALIGN_Y_TOP)
         self._drawables.append(self.button)

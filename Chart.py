@@ -11,6 +11,11 @@ import Drawables
 
 
 class Sorting(object):
+    """
+    The types of sorting possible.  FIFO means that most recent is at the bottom.  LIFO means that most recent is at the
+    top.  OTHER means that you are providing your own compare function (which must take in 2 arguments, return -1, 0, or
+    1 accordingly).
+    """
     FIFO = 0
     LIFO = 1
     ASCENDING = 2
@@ -19,15 +24,21 @@ class Sorting(object):
 
 
 class Chart(Drawables.Drawable):
+    # This is the restricted word that you should not send to the fifo; when this command is read, the data feed closes
     FIFO_CLOSING_COMMAND = "CLOSING"
 
-    def __init__(self, x, y, width, height, bg_color=Colors.BLACK, fg_color=Colors.WHITE, cell_heights=20):
+    def __init__(self, x, y, width, height, fg_color=Colors.WHITE, cell_heights=20):
         """
-        Note here that x and y are the top left coordinate of the entire Graph, not data_x and data_y or where the
-        the plot is within the graph
+        Create a chart with columns of data (each column is called a dataset).  The first row is the headers of the
+        columns and everything below are data points.  All of the columns must have the same number of data points.
+        :param x: The x coordinate of the top left corner of the chart
+        :param y: The y coordinate of the top left corner of the chart
+        :param width: The width of the chart (the sum of column widths cannot exceed this)
+        :param height: The height of the chart (not directly used)
+        :param fg_color: The default foreground color of the chart(lines and text will by default be this color)
+        :param cell_heights: The height of each cell in the chart
         """
         super(Chart, self).__init__(x, y, width, height)
-        self._bg_color = bg_color
         self._fg_color = fg_color
         self._cell_heights = cell_heights
 
@@ -40,6 +51,11 @@ class Chart(Drawables.Drawable):
         self._sorting_scheme = {"sorting_scheme": Sorting.FIFO, "dataset_name": None, "other_compare_func": None}
 
     def draw(self, surface):
+        """
+        Draw the chart
+        :param surface: The surface onto which the chart should be drawn
+        :return: None
+        """
         super().draw(surface)
 
         for line in self._drawables["horizontal"]:
@@ -53,6 +69,12 @@ class Chart(Drawables.Drawable):
                 text.draw(surface)
 
     def move(self, dx, dy):
+        """
+        Overrides the Drawable move function.  This chart has a list of its own drawables so it needs to move those too
+        :param dx: The amount things should move in the x direction (positive or negative float)
+        :param dy: The amount things should move in the y direction (positive or negative float)
+        :return:
+        """
         super().move(dx, dy)
 
         for line in self._drawables["horizontal"]:
@@ -66,6 +88,10 @@ class Chart(Drawables.Drawable):
                 text.move(dx, dy)
 
     def exit(self):
+        """
+        Exit out of this chart. This involves closing the fifo data feed
+        :return: None
+        """
         for fifo_source in self.fifo_sources:
             if not (os.path.exists(fifo_source) and stat.S_ISFIFO(os.stat(fifo_source).st_mode)):
                 continue
@@ -75,6 +101,15 @@ class Chart(Drawables.Drawable):
                 fifo.write(Chart.FIFO_CLOSING_COMMAND)
 
     def setup_new_data_source(self, fifo_source, new_data_callback):
+        """
+        Set up a new data_source/data feed.  This new source must be a fifo from which this function will automatically
+        and continuously try to read from in a new thread until this Chart is exited.  When there is a new data point,
+        the new_data_callback function will be triggered and you can define what to do in that (though you probably will
+        want to call the add_datum function)
+        :param fifo_source: The filepath (relative or absolute) to the data source
+        :param new_data_callback: The callback function that will process the data read from the fifo
+        :return: None
+        """
         assert os.path.exists(fifo_source) and stat.S_ISFIFO(os.stat(fifo_source).st_mode)
 
         self.fifo_sources.append(fifo_source)
@@ -97,11 +132,23 @@ class Chart(Drawables.Drawable):
         # Checking for new data needs to be done in a new thread so the select statement can block
         threading.Thread(target=_get_new_data).start()
 
-    def add_dataset(self, name, data, bg_color=Colors.BLACK, fg_color=Colors.WHITE, formatting="{}", cell_width=100,
+    def add_dataset(self, name, data, font_color=Colors.WHITE, formatting="{}", cell_width=100,
                     header_align_x=Drawables.Text.ALIGN_X_CENTER, data_align_x=Drawables.Text.ALIGN_X_LEFT):
+        """
+        Add a new dataset (or column) to the chart.  Note that this funciton cannot be called after the add_datum
+        function has been called.
+        :param name: Name of the column (will show up as a header)
+        :param data: A list of data points for this column (all columns must have the same number of datapoints.
+        :param font_color: Color of the font of the text in this column
+        :param formatting: If you wat custom formatting; for example, if you want percent signs, you can pass in "{}%"
+        :param cell_width: Width of the cells in this column
+        :param header_align_x: How should the header be aligned (pick from Drawables.Text x align options)
+        :param data_align_x: How should the data values be aligned (pick from Drawables.Text x align options)
+        :return: None
+        """
         assert isinstance(name, str) and name not in self.datasets
         assert isinstance(data, list)
-        assert Colors.is_color(bg_color) and Colors.is_color(fg_color)
+        assert Colors.is_color(font_color)
         assert isinstance(formatting, str) and re.match(r"^[^{]*{[^{]*}[^{]*$", formatting)
         assert header_align_x in (Drawables.Text.ALIGN_X_LEFT, Drawables.Text.ALIGN_X_CENTER, Drawables.Text.ALIGN_X_RIGHT)
         assert data_align_x in (Drawables.Text.ALIGN_X_LEFT, Drawables.Text.ALIGN_X_CENTER, Drawables.Text.ALIGN_X_RIGHT)
@@ -136,25 +183,33 @@ class Chart(Drawables.Drawable):
             Drawables.Text.ALIGN_X_RIGHT: column_x + cell_width - pad
         }
         self._drawables["headers"].append(Drawables.Text(x_values[header_align_x], self.y + self._cell_heights / 2,
-                                                         name, font_size=15, fg_color=fg_color,
+                                                         name, font_size=15, fg_color=font_color,
                                                          align_x=header_align_x, align_y=Drawables.Text.ALIGN_Y_CENTER))
 
         # Deal with data
         data_drawables = []
         for i, datum in enumerate(data):
             data_drawables.append(Drawables.Text(x_values[data_align_x], self.y + (i + 1.5) * self._cell_heights,
-                                                 formatting.format(datum), font_size=data_font_size, fg_color=fg_color,
+                                                 formatting.format(datum), font_size=data_font_size, fg_color=font_color,
                                                  align_x=data_align_x, align_y=Drawables.Text.ALIGN_Y_CENTER))
         self._drawables["data"][name] = data_drawables
 
         # Store the input values
-        self.datasets[name] = {"data": data, "insertion_order": range(len(data)), "bg_color": bg_color, "fg_color": fg_color,
-                               "formatting": formatting, "cell_width": cell_width, "data_font_size": data_font_size, "pad": pad,
-                               "header_align_x": header_align_x, "data_align_x": data_align_x}
+        self.datasets[name] = {"data": data, "insertion_order": range(len(data)), "font_color": font_color,
+                               "formatting": formatting, "cell_width": cell_width, "data_font_size": data_font_size,
+                               "pad": pad, "header_align_x": header_align_x, "data_align_x": data_align_x}
 
         self._sort()
 
     def add_datum(self, values):
+        """
+        Add new datum.  This will automatically add the datum to the chart and draw a new row for this.  After the data
+        point is added, the chart is resorted as desired (set the sorting scheme using add_sorting_scheme; default is
+        FIFO so new data appears at the bottom).
+        :param values: A dictionary of values (must have the same keys as the names of the columns and must have a
+                    key/value pair for every column.
+        :return: None
+        """
         assert isinstance(values, dict) and values.keys() == self.datasets.keys()
 
         # Mark that you can't add more datasets
@@ -194,6 +249,16 @@ class Chart(Drawables.Drawable):
             self._sort()
 
     def add_sorting_scheme(self, sorting_scheme, dataset_name=None, other_compare_func=None):
+        """
+        If a custom sorting scheme is desired for this chart; default is FIFO.  Refer to the Chart.Sorting class for the
+        options.  Chart is automatically resorted after this is specified.
+        :param sorting_scheme: One of the options in Chart.Sorting.
+        :param dataset_name: Only needed for Sorting.ASCENDING, Sorting.DESCENDING, and Sorting.OTHER; this defines the
+                    column to actually do the sorting on.  Pass in the name of the column.
+        :param other_compare_func: Only needed for Sorting.OTHER; this is where you define your own custom compare
+                    function.  The column (which you specify via dataset_name) will be sorted via this compare function.
+        :return: None
+        """
         assert sorting_scheme in [Sorting.FIFO, Sorting.LIFO, Sorting.ASCENDING, Sorting.DESCENDING, Sorting.OTHER]
         if sorting_scheme == Sorting.FIFO or sorting_scheme == Sorting.LIFO:
             assert dataset_name is None and other_compare_func is None
@@ -211,6 +276,10 @@ class Chart(Drawables.Drawable):
         self._sort()
 
     def _sort(self):
+        """
+        Internal function that sorts the datasets accordingly.
+        :return: None
+        """
         if self._sorting_scheme["sorting_scheme"] == Sorting.FIFO:
             for dataset_name, dataset in self.datasets.items():
                 zipped = zip(dataset["data"], dataset["insertion_order"])
