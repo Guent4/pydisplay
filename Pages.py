@@ -1,10 +1,10 @@
 import pygame
 
-import Colors
-import Constants
-import Drawables
-import Events
-import PyDisplay
+from pydisplay import Colors
+from pydisplay import Constants
+from pydisplay import Drawables
+from pydisplay import Events
+from pydisplay import PyDisplay
 
 
 class Page(object):

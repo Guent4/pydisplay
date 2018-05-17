@@ -6,8 +6,8 @@ import re
 import stat
 import threading
 
-import Colors
-import Drawables
+from pydisplay import Colors
+from pydisplay import Drawables
 
 
 class Sorting(object):

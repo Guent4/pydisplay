@@ -1,7 +1,7 @@
 import pygame
 
-import Colors
-import Events
+from pydisplay import Colors
+from pydisplay import Events
 
 
 class Drawable(object):

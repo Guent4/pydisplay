@@ -3,8 +3,8 @@ import time
 import pygame
 import pygame.locals
 
-import Constants
-import Events
+from pydisplay import Constants
+from pydisplay import Events
 
 try:
     import RPi.GPIO as GPIO

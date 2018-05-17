@@ -1,14 +1,14 @@
 import argparse
 import random
 
-import Chart
-import Colors
-import Constants
-import Drawables
-import Events
-import Graphs
-import Pages
-import PyDisplay
+from pydisplay import Chart
+from pydisplay import Colors
+from pydisplay import Constants
+from pydisplay import Drawables
+from pydisplay import Events
+from pydisplay import Graphs
+from pydisplay import Pages
+from pydisplay import PyDisplay
 
 
 class ScatterDemo(Pages.Page):

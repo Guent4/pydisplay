@@ -3,10 +3,10 @@ import time
 
 import pygame
 
-import Constants
-import Controllers
-import Events
-import Pages
+from pydisplay import Constants
+from pydisplay import Controllers
+from pydisplay import Events
+from pydisplay import Pages
 
 
 class PyDisplay(object):

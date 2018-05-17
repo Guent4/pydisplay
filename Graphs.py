@@ -7,8 +7,8 @@ import threading
 
 import pygame
 
-import Colors
-import Drawables
+from pydisplay import Colors
+from pydisplay import Drawables
 
 
 class GraphTypes(object):

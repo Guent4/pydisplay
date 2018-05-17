@@ -1,6 +1,6 @@
 import inspect
 
-import Constants
+from pydisplay import Constants
 
 
 class EventTypes(object):
