@@ -1,4 +1,5 @@
 import collections
+import inspect
 import os
 import stat
 import threading
@@ -178,7 +179,6 @@ class Graph(Drawables.Drawable):
         for number in self._drawables["y_numbers"]:
             number.draw(surface)
 
-
     def move(self, dx, dy):
         """
         Overrides the Drawable move function.  This graph has a bunch of its own drawables so it needs to move those too
@@ -268,6 +268,18 @@ class Graph(Drawables.Drawable):
         assert len(x_data) == len(y_data)
 
         self.datasets[name] = {"color": color, "xs": x_data, "ys":y_data}
+
+    def remove_dataset(self, name):
+        """
+        Remove a dataset.
+        :param name: Name of the dataset
+        :return: True if there was a dataset with that name and False otherwise
+        """
+        if name in self.datasets:
+            del self.datasets[name]
+            return True
+        else:
+            return False
 
     def add_datum(self, dataset_name, x_value, y_value):
         """
@@ -378,15 +390,21 @@ class Graph(Drawables.Drawable):
 
 
 class Scatter(Graph):
-    def __init__(self, x, y, width, height):
+    def __init__(self, x, y, width, height, connect_points=False):
         """
-        Create a scatter plot.
+        Create a scatter plot.  Note that if connect_points=True and if a data point is not within the x bounds or y
+        bounds, the line to and from this point will not be drawn.
         :param x: The x coordinate of the top left corner of the graph
         :param y: The y coordinate of the top left corner of the graph
         :param width: The width of the graph
         :param height: The height of the graph
+        :param connect_points: Should lines be drawn between points?
         """
         super(Scatter, self).__init__(x, y, width, height)
+
+        assert isinstance(connect_points, bool)
+
+        self._connect_points = connect_points
 
     def draw(self, surface):
         """
@@ -402,16 +420,24 @@ class Scatter(Graph):
             data_x = self.datasets[dataset_name]["xs"]
             data_y = self.datasets[dataset_name]["ys"]
 
-            for x_value, y_value in zip(data_x, data_y):
+            for i, (x_value, y_value, next_x, next_y) in enumerate(zip(data_x, data_y, data_x[1:], data_y[1:])):
                 x, y = self._datum_position(x_value, y_value)
-                if x is not None and y is not None:
+                x2, y2 = self._datum_position(next_x, next_y)
+
+                if x is not None and y is not None and x2 is not None and y2 is not None:
+                    pygame.draw.line(surface,color,(x,y), (x2,y2))
+
+                if i == 0 and x is not None and y is not None:
                     pygame.draw.circle(surface, color, (x, y), 1)
+                if x2 is not None and y2 is not None:
+                    pygame.draw.circle(surface, color, (x2, y2), 1)
 
 
 class Line(Graph):
     def __init__(self, x, y, width, height):
         """
-        Create a scatter plot.
+        Create a scatter plot.  Note that if a data point is not within the x bounds or y bounds, the line to and from
+        this point will not be drawn.
         :param x: The x coordinate of the top left corner of the graph
         :param y: The y coordinate of the top left corner of the graph
         :param width: The width of the graph
@@ -438,6 +464,30 @@ class Line(Graph):
                 x2, y2 = self._datum_position(next_x, next_y)
                 if x is not None and y is not None and x2 is not None and y2 is not None:
                     pygame.draw.line(surface,color,(x,y), (x2,y2))
+
+    def generate_ys_from_function(self, func, num_xs=100):
+        """
+        Given a function that takes in a single x value and will return the corresponding y value, this function will
+        generate a list of x and y values to fill the graph.
+        :param func: A function that takes in a single x value and will return the corresponding y value
+        :param num_xs: Number of xs and ys to return; note that on the PiTFT the screen has 320 pixels total in the
+                    horizontal direction and this graph takes up around 200ish of those pixels, so 100 is reasonable)
+        :return: A tuple of lists: (xs, ys)
+        """
+        assert callable(func) and len(inspect.getfullargspec(func).args) == 1
+        assert isinstance(num_xs, int) and num_xs > 0
+
+        x_interval = (self._axis["x_max"] - self._axis["x_min"]) / num_xs
+
+        xs = []
+        ys = []
+        x = self._axis["x_min"]
+        while x <= self._axis["x_max"]:
+            xs.append(x)
+            ys.append(func(x))
+            x += x_interval
+
+        return xs, ys
 
 
 class Bar(Graph):
