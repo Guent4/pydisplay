@@ -51,7 +51,7 @@ class PyDisplay(object):
         # At this point, we don't have pages so can't create a page manager
         self.page_manager = None
 
-    def setup_pages(self, page_classes, page_class_args, switcher_location=Pages.PageManager.SWITCHER_LOCATIONS["BOTTOM"]):
+    def setup_pages(self, page_classes, page_class_args, switcher_location=None):
         """
         Call this function to actually setup all of the pages to display.
         :param page_classes: A list of Page classes.  Don't actually pass in instances of the classes, but rather the
@@ -60,10 +60,13 @@ class PyDisplay(object):
         :param switcher_location: Where should the switcher be?  Use from Pages.PageManager.SWITCHER_LOCATIONS
         :return:
         """
+        if switcher_location is None:
+            switcher_location = Pages.PageManager.SWITCHER_LOCATIONS["BOTTOM"]
+
         assert isinstance(page_classes, list) and isinstance(page_class_args, list)
         assert len(page_classes) > 0 and len(page_classes) == len(page_class_args)
         assert all([isinstance(args, list) for args in page_class_args])
-        assert switcher_location in Pages.PageManager.SWITCHER_LOCATIONS.keys()
+        assert switcher_location in Pages.PageManager.SWITCHER_LOCATIONS.values()
 
         # PageManager is responsible for all of the pages including displaying the pages and switching between pages
         pages = [cls(self, self._event_handler, *arg) for cls, arg in zip(page_classes, page_class_args)]
@@ -107,7 +110,5 @@ class PyDisplay(object):
 
                 # Sleep for the refresh interval
                 time.sleep(max(0, Constants.REFRESH_INTERVAL - (time.time() - start_time)))
-        except Exception as e:
-            print("EXCEPTION! {}".format(e))
         finally:
             self.exit()

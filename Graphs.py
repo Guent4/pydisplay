@@ -336,9 +336,12 @@ class Graph(Drawables.Drawable):
         """
         assert isinstance(x_value, int) or isinstance(x_value, float)
         assert isinstance(y_value, int) or isinstance(y_value, float)
-        # TODO handle the case when the data point is outside of the plot bounds
         x = self._axis["y_axis_x"] + x_value * (self._plot["width"] / abs(self._axis["x_max"] - self._axis["x_min"]))
         y = self._axis["x_axis_y"] - y_value * (self._plot["height"] / abs(self._axis["y_max"] - self._axis["y_min"]))
+
+        if x < self.x + self._plot["offset_x"] or x > self.x + self._plot["offset_x"] + self._plot["width"] or \
+                y < self.y + self._plot["offset_y"] or y > self.y + self._plot["offset_y"] + self._plot["height"]:
+            return None, None
 
         return int(x), int(y)
 
@@ -401,7 +404,8 @@ class Scatter(Graph):
 
             for x_value, y_value in zip(data_x, data_y):
                 x, y = self._datum_position(x_value, y_value)
-                pygame.draw.circle(surface, color, (x, y), 1)
+                if x is not None and y is not None:
+                    pygame.draw.circle(surface, color, (x, y), 1)
 
 
 class Line(Graph):
@@ -432,7 +436,8 @@ class Line(Graph):
             for x_value, y_value, next_x, next_y in zip(data_x, data_y, data_x[1:], data_y[1:]):
                 x, y = self._datum_position(x_value, y_value)
                 x2, y2 = self._datum_position(next_x, next_y)
-                pygame.draw.line(surface,color,(x,y), (x2,y2))
+                if x is not None and y is not None and x2 is not None and y2 is not None:
+                    pygame.draw.line(surface,color,(x,y), (x2,y2))
 
 
 class Bar(Graph):

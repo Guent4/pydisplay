@@ -18,8 +18,8 @@ class Drawable(object):
         :param width: Indicator of how wide the object is (uses of this varies, but can be useful for position_inside())
         :param height: Indicator of how tall the object is (uses of this varies, but can be useful for position_inside())
         """
-        self.x = x
-        self.y = y
+        self.x = round(x)
+        self.y = round(y)
         self.width = width
         self.height = height
         self._enabled = False
@@ -115,7 +115,7 @@ class Line(Drawable):
         """
         super().__init__(x, y, width, height)
         assert Colors.is_color(color)
-        assert isinstance(self.line_width, int) and self.line_width > 0
+        assert isinstance(line_width, int) and line_width > 0
         self.color = color
         self.line_width = line_width
 
@@ -152,7 +152,7 @@ class Button(Drawable):
         :param args: Extra arguments to be passed into the callback function
         """
         super().__init__(x, y, width, height)
-        assert shape in Button.SHAPES.keys()
+        assert shape in Button.SHAPES.values()
         assert args is None or isinstance(args, list)
         self.radius = width     # for circle button width becomes the radius.
         self.text = text
@@ -189,17 +189,19 @@ class Button(Drawable):
         :return: None
         """
         super().draw(surface)
-        if self.shape == 0:
-            pygame.draw.circle(surface, self.bg_color, (self.x, self.y), self.radius)
-            text_surface = self._my_font.render(self.text, True, self.fg_color)
-            text_rect = text_surface.get_rect(center=(self.x, self.y))
-            surface.blit(text_surface, text_rect)
-        else:
+        if self.shape == Button.SHAPES["rectangle"]:
             rect = (self.x, self.y, self.width, self.height)
             pygame.draw.rect(surface, self.bg_color, rect)
             text_surface = self._my_font.render(self.text, True, self.fg_color)
             text_rect = text_surface.get_rect(center=(self.x + self.width / 2, self.y + self.height / 2))
             surface.blit(text_surface, text_rect)
+        elif self.shape == Button.SHAPES["circle"]:
+            pygame.draw.circle(surface, self.bg_color, (self.x, self.y), round(self.radius))
+            text_surface = self._my_font.render(self.text, True, self.fg_color)
+            text_rect = text_surface.get_rect(center=(self.x, self.y))
+            surface.blit(text_surface, text_rect)
+        else:
+            raise NotImplementedError
 
     def event_callback(self, event):
         """
@@ -220,15 +222,17 @@ class Button(Drawable):
         :param pos: (x, y) coordinate
         :returns: True if pos inside button, False otherwise
         """
-        if self.shape == 0:
-            distance = ((pos[1] - self.y) ** 2 + (pos[0] - self.x) ** 2) ** 0.5
-            return distance <= self.radius
-        else:
+        if self.shape == Button.SHAPES["rectangle"]:
             left = self.x
             right = self.x + self.width
             top = self.y
             bottom = self.y + self.height
             return left <= pos[0] <= right and top <= pos[1] <= bottom
+        elif self.shape == Button.SHAPES["circle"]:
+            distance = ((pos[1] - self.y) ** 2 + (pos[0] - self.x) ** 2) ** 0.5
+            return distance <= self.radius
+        else:
+            raise NotImplementedError
 
 
 class Text(Drawable):
@@ -258,7 +262,7 @@ class Text(Drawable):
         assert Colors.is_color(fg_color)
         assert align_x in [Text.ALIGN_X_CENTER, Text.ALIGN_X_LEFT, Text.ALIGN_X_RIGHT]
         assert align_y in [Text.ALIGN_Y_CENTER, Text.ALIGN_Y_TOP, Text.ALIGN_Y_BOTTOM]
-        assert (isinstance(rotate, int) or isinstance(rotate, float)) and 0 <= rotate <= 360
+        assert isinstance(rotate, int) and 0 <= rotate <= 360
         self.text = text
         self.fg_color = fg_color
         self._my_font = pygame.font.Font(None, font_size)

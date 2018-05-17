@@ -10,70 +10,56 @@ import Pages
 import PyDisplay
 
 
-# class TempPage4(Pages.Page):
-#     def __init__(self, event_handler):
-#         page_size = (Constants.PI_TFT_SCREEN_SIZE[0], Constants.PI_TFT_SCREEN_SIZE[1] - Pages.PageManager.SWITCHER_HEIGHT)
-#         super().__init__(event_handler, "temp4", page_size, Colors.BLACK)
-#
-#         self.scatter = Graphs.Scatter(0, 0, *self.page_size)
-#         self.scatter.set_title("TEST")
-#         self.scatter.set_x_label("x axis")
-#         self.scatter.set_y_label("y axis")
-#         self.scatter.create_plot()
-#         self.scatter.add_dataset("test", [0, 1, 2, 3, -1, -2, -3], [0, 1, 2, 3, -1, -2, -3])
-#         # self.scatter.setup_new_data_source("test", TempPage1._new_data_from_fifo)
-#
-#         self.line = Graphs.Line(0, 0, *self.page_size)
-#         self.line.set_title("TEST")
-#         self.line.set_x_label("x axis")
-#         self.line.set_y_label("y axis")
-#         self.line.create_plot()
-#         self.line.add_dataset("test", [0, 1, 2, 3, -1, -2, -3], [1, 2, 3, 4, 0, -1, -2], color=Colors.RED)
-#
-#         self.line2 = Graphs.Line(0, 0, *self.page_size)
-#         self.line2.set_title("TEST")
-#         self.line2.set_x_label("x axis")
-#         self.line2.set_y_label("y axis")
-#         self.line2.create_plot()
-#         self.line2.add_dataset("test", [0, -1, -2, -3, 1, 2, 3], [1, 2, 3, 4, 0, -1, -2], color=Colors.GREEN)
-#
-#         @staticmethod
-#         def _new_data_from_fifo(graph, fifo_source, data):
-#             assert isinstance(graph, Graphs.Graph)
-#             print(graph)
-#             print("New data from {}: '{}'".format(fifo_source, data))
-#             x_value, y_value = list(map(float, data.split(" ")))
-#             graph.add_datum("test", x_value, y_value)
-
-
-class TempPage1(Pages.Page):
+class ScatterDemo(Pages.Page):
     def __init__(self, pydisplay, event_handler):
         page_size = (Constants.PI_TFT_SCREEN_SIZE[0], Constants.PI_TFT_SCREEN_SIZE[1] - Pages.PageManager.SWITCHER_HEIGHT)
-        super().__init__(pydisplay, event_handler, "temp2", page_size, Colors.BLACK)
+        super().__init__(pydisplay, event_handler, "Scatter", page_size, Colors.BLACK)
 
         self.scatter = Graphs.Scatter(0, 0, *self.page_size)
         self.scatter.set_title("TEST")
         self.scatter.set_x_label("x axis")
         self.scatter.set_y_label("y axis")
-        self.scatter.add_dataset("test", [0, 1, 2, 3, -1, -2, -3], [0, 1, 2, 3, -1, -2, -3])
-        # self.scatter.setup_new_data_source("test", TempPage1._new_data_from_fifo)
+        self.scatter.add_dataset("test", [0, 1, 2, 3, -1, -2, -3, -11, -10], [0, 1, 2, 3, -1, -2, -3, -11, -6])
+        # self.scatter.setup_new_data_source("test", ScatterDemo._new_data_from_fifo)
 
-        self.line = Graphs.Line(0, 0, *self.page_size)
-        self.line.set_title("TEST")
-        self.line.set_x_label("x axis")
-        self.line.set_y_label("y axis")
-        self.line.create_plot()
-        self.line.add_dataset("test1", [0, 1, 2, 3, -1, -2, -3], [1, 2, 3, 4, 0, -1, -2], color=Colors.RED)
-        self.line.add_dataset("test2", [0, -1, -2, -3, 1, 2, 3], [1, 2, 3, 4, 0, -1, -2], color=Colors.GREEN)
+        # self.line = Graphs.Line(0, 0, *self.page_size)
+        # self.line.set_title("TEST")
+        # self.line.set_x_label("x axis")
+        # self.line.set_y_label("y axis")
+        # self.line.create_plot()
+        # self.line.add_dataset("test1", [0, 1, 2, 3, -1, -2, -3], [1, 2, 3, 4, 0, -1, -2], color=Colors.RED)
+        # self.line.add_dataset("test2", [0, -1, -2, -3, 1, 2, 3], [1, 2, 3, 4, 0, -1, -2], color=Colors.GREEN)
+        #
+        # self.bar = Graphs.Bar(0, 0, *self.page_size)
+        # self.bar.set_title("TEST")
+        # self.bar.set_x_label("x axis")
+        # self.bar.set_y_label("y axis")
+        # self.bar.add_dataset("test", [0, 1, 2, 3, -1, -2, -3], [0, 1, 2, 3, -1, -2, -3], color=Colors.BLUE)
+
+        self._drawables.append(self.scatter)
+        # self._drawables.append(self.line)
+        # self._drawables.append(self.bar)
+
+    @staticmethod
+    def _new_data_from_fifo(graph, fifo_source, data):
+        assert isinstance(graph, Graphs.Graph)
+        print("New data from {}: '{}'".format(fifo_source, data))
+        x_value, y_value = list(map(float, data.split(" ")))
+        graph.add_datum("test", x_value, y_value)
+
+
+class BarDemo(Pages.Page):
+    def __init__(self, pydisplay, event_handler):
+        page_size = (Constants.PI_TFT_SCREEN_SIZE[0], Constants.PI_TFT_SCREEN_SIZE[1] - Pages.PageManager.SWITCHER_HEIGHT)
+        super().__init__(pydisplay, event_handler, "Bar", page_size, Colors.BLACK)
 
         self.bar = Graphs.Bar(0, 0, *self.page_size)
         self.bar.set_title("TEST")
         self.bar.set_x_label("x axis")
         self.bar.set_y_label("y axis")
         self.bar.add_dataset("test", [0, 1, 2, 3, -1, -2, -3], [0, 1, 2, 3, -1, -2, -3], color=Colors.BLUE)
+        # self.bar.setup_new_data_source("test", ScatterDemo._new_data_from_fifo)
 
-        self._drawables.append(self.scatter)
-        self._drawables.append(self.line)
         self._drawables.append(self.bar)
 
     @staticmethod
@@ -84,9 +70,9 @@ class TempPage1(Pages.Page):
         graph.add_datum("test", x_value, y_value)
 
 
-class TempPage2(Pages.Page):
+class ButtonsTextDemo(Pages.Page):
     def __init__(self, pydisplay, event_handler):
-        super().__init__(pydisplay, event_handler, "temp1", (400, 300), Colors.BLACK)
+        super().__init__(pydisplay, event_handler, "Buttons", (400, 300), Colors.BLACK)
 
         self.button = Drawables.Button(50, 50, 100, 50, "Hello", 25, Colors.WHITE, Colors.BLUE,
                                        callback=self.button_callback)
@@ -110,16 +96,16 @@ class TempPage2(Pages.Page):
         print("Button 27 pressed for {}!".format(event.duration))
 
 
-class TempPage3(Pages.Page):
+class ChartDemo(Pages.Page):
     def __init__(self, pydisplay, event_handler):
         page_size = (Constants.PI_TFT_SCREEN_SIZE[0], Constants.PI_TFT_SCREEN_SIZE[1] - Pages.PageManager.SWITCHER_HEIGHT)
-        super().__init__(pydisplay, event_handler, "temp3", page_size, Colors.BLACK)
+        super().__init__(pydisplay, event_handler, "Chart", page_size, Colors.BLACK)
 
         self.chart = Chart.Chart(0, 0, *page_size)
         self.chart.add_dataset("test1", [0, 1, 2, 3, -1, -2, -3])
         self.chart.add_dataset("test2", [0, 1, 2, 3, -1, -2, -3])
-        self.chart.add_sorting_scheme(Chart.Sorting.OTHER, "test1", TempPage3._compare)
-        self.chart.setup_new_data_source("test", TempPage3._new_data_from_fifo)
+        self.chart.add_sorting_scheme(Chart.Sorting.OTHER, "test1", ChartDemo._compare)
+        # self.chart.setup_new_data_source("test", ChartDemo._new_data_from_fifo)
 
         self._drawables.append(self.chart)
 
@@ -143,8 +129,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    page_classes = [TempPage3, TempPage1, TempPage2]
-    page_class_args = [[], [], []]
+    page_classes = [BarDemo, ScatterDemo, ChartDemo, ButtonsTextDemo]
+    page_class_args = [[], [], [], []]
     pydisplay = PyDisplay.PyDisplay(not args.not_on_pitft, not args.disable_touchscreen, not args.disable_button)
     pydisplay.setup_pages(page_classes, page_class_args, Pages.PageManager.SWITCHER_LOCATIONS["BOTTOM"])
     pydisplay.run()
