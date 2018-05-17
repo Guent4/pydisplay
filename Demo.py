@@ -21,7 +21,7 @@ class ScatterDemo(Pages.Page):
         self.scatter.set_x_label("x axis")
         self.scatter.set_y_label("y axis")
         self.scatter.add_dataset("test", [0, 1, 2, 3, -1, -2, -3, -11, -10], [0, 1, 2, 3, -1, -2, -3, -11, -6])
-        # self.scatter.setup_new_data_source("testScatter", ScatterDemo._new_data_from_fifo)
+        self.scatter.setup_new_data_source("testScatter", ScatterDemo._new_data_from_fifo)
 
         self._drawables.append(self.scatter)
 
@@ -68,7 +68,7 @@ class HistogramDemo(Pages.Page):
         self.hist.set_y_label("y axis")
         self.hist.add_dataset("test1", [random.choice(options) for _ in range(30)], None, color=Colors.BLUE)
         self.hist.add_dataset("test2", [random.choice(options) for _ in range(30)], None, color=Colors.GREEN)
-        # self.hist.setup_new_data_source("testHist", HistogramDemo._new_data_from_fifo)
+        self.hist.setup_new_data_source("testHist", HistogramDemo._new_data_from_fifo)
 
         self._drawables.append(self.hist)
 
@@ -138,7 +138,7 @@ class ChartDemo(Pages.Page):
         self.chart.add_dataset("test3", [0, 1, 2, 3, -1, -2, -3])
         self.chart.add_dataset("test4", [0, 1, 2, 3, -1, -2, -3])
         self.chart.add_sorting_scheme(Chart.Sorting.OTHER, "test1", ChartDemo._compare)
-        # self.chart.setup_new_data_source("testChart", ChartDemo._new_data_from_fifo)
+        self.chart.setup_new_data_source("testChart", ChartDemo._new_data_from_fifo)
 
         self._drawables.append(self.chart)
 
@@ -150,7 +150,7 @@ class ChartDemo(Pages.Page):
     def _new_data_from_fifo(chart, fifo_source, data):
         assert isinstance(chart, Chart.Chart)
         values = list(map(float, data.split(" ")))
-        values_dict = {"test1": values[0], "test2": values[1]}
+        values_dict = {"test1": values[0], "test2": values[1], "test3": values[2], "test4": values[3]}
         chart.add_datum(values_dict)
 
 
