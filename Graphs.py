@@ -588,6 +588,9 @@ class Bar(Graph):
 
         self._can_set_bars = False
 
+    def add_datum(self, dataset_name, x_value, y_value):
+        raise NotImplementedError("add_datum is not supported for bar graphs")
+
     def draw(self, surface):
         """
         Customized draw function.
@@ -598,14 +601,15 @@ class Bar(Graph):
 
         # Draw datapoints
         one_side = (self._plot["width"] / abs(self._axis["x_max"] - self._axis["x_min"])) * self._bars["column_width"] * 0.5
-        for dataset_name in self.datasets:
+        each_width = one_side * 2 / len(self.datasets)
+        for i, dataset_name in enumerate(self.datasets):
             color = self.datasets[dataset_name]["color"]
             data_x = list(map(lambda x: x + 0.5, range(self._bars["num_columns"])))
             data_y = self.datasets[dataset_name]["ys"]
 
             for x_value, y_value in zip(data_x, data_y):
                 x, y = self._datum_position(x_value, max(min(y_value, self._axis["y_max"]), self._axis["y_min"]))
-                rect = (x - one_side, self._axis["x_axis_y"], one_side * 2, y - self._axis["x_axis_y"])
+                rect = (x - one_side + each_width * i, self._axis["x_axis_y"], each_width, y - self._axis["x_axis_y"])
                 pygame.draw.rect(surface, color, rect)
 
 

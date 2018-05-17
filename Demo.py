@@ -41,7 +41,8 @@ class BarDemo(Pages.Page):
         self.bar.set_title("TEST")
         self.bar.set_x_label("x axis")
         self.bar.set_y_label("y axis")
-        self.bar.add_dataset("test", None, [0, 1, 2, 3, -1, -2, -10], color=Colors.BLUE)
+        self.bar.add_dataset("test1", None, [0, 1, 2, 3, -1, -2, -10], color=Colors.BLUE)
+        self.bar.add_dataset("test2", None, [-10, 0, 1, 2, 3, -1, -2], color=Colors.GREEN)
         # self.bar.setup_new_data_source("test", ScatterDemo._new_data_from_fifo)
 
         self._drawables.append(self.bar)
