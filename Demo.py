@@ -21,7 +21,7 @@ class ScatterDemo(Pages.Page):
         self.scatter.set_x_label("x axis")
         self.scatter.set_y_label("y axis")
         self.scatter.add_dataset("test", [0, 1, 2, 3, -1, -2, -3, -11, -10], [0, 1, 2, 3, -1, -2, -3, -11, -6])
-        self.scatter.setup_new_data_source("testScatter", ScatterDemo._new_data_from_fifo)
+        # self.scatter.setup_new_data_source("testScatter", ScatterDemo._new_data_from_fifo)
 
         self._drawables.append(self.scatter)
 
@@ -68,7 +68,7 @@ class HistogramDemo(Pages.Page):
         self.hist.set_y_label("y axis")
         self.hist.add_dataset("test1", [random.choice(options) for _ in range(30)], None, color=Colors.BLUE)
         self.hist.add_dataset("test2", [random.choice(options) for _ in range(30)], None, color=Colors.GREEN)
-        self.hist.setup_new_data_source("testHist", HistogramDemo._new_data_from_fifo)
+        # self.hist.setup_new_data_source("testHist", HistogramDemo._new_data_from_fifo)
 
         self._drawables.append(self.hist)
 
@@ -130,14 +130,16 @@ class ButtonsTextDemo(Pages.Page):
 
 class ChartDemo(Pages.Page):
     def __init__(self, pydisplay, event_handler):
-        page_size = (Constants.PI_TFT_SCREEN_SIZE[0], 500)
+        page_size = (500, 500)
         super().__init__(pydisplay, event_handler, "Chart", page_size, Colors.BLACK)
 
         self.chart = Chart.Chart(0, 0, *page_size)
         self.chart.add_dataset("test1", [0, 1, 2, 3, -1, -2, -3])
         self.chart.add_dataset("test2", [0, 1, 2, 3, -1, -2, -3])
+        self.chart.add_dataset("test3", [0, 1, 2, 3, -1, -2, -3])
+        self.chart.add_dataset("test4", [0, 1, 2, 3, -1, -2, -3])
         self.chart.add_sorting_scheme(Chart.Sorting.OTHER, "test1", ChartDemo._compare)
-        self.chart.setup_new_data_source("testChart", ChartDemo._new_data_from_fifo)
+        # self.chart.setup_new_data_source("testChart", ChartDemo._new_data_from_fifo)
 
         self._drawables.append(self.chart)
 
@@ -161,7 +163,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    page_classes = [HistogramDemo, BarDemo, LineDemo, ScatterDemo, ChartDemo, ButtonsTextDemo]
+    page_classes = [ChartDemo, HistogramDemo, BarDemo, LineDemo, ScatterDemo, ButtonsTextDemo]
     page_class_args = [[], [], [], [], [], []]
     pydisplay = PyDisplay.PyDisplay(not args.not_on_pitft, not args.disable_touchscreen, not args.disable_button)
     pydisplay.setup_pages(page_classes, page_class_args, Pages.PageManager.SWITCHER_LOCATIONS["BOTTOM"])

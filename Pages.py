@@ -142,10 +142,10 @@ class Page(object):
         dx = event.position_new[0] - event.position_old[0]
         dy = event.position_new[1] - event.position_old[1]
 
-        min_dx = 0 - self._location_on_page[0]
-        max_dx = self.page_size[0] - (self._location_on_page[0] + self.screen_size[0])
-        min_dy = 0 - self._location_on_page[1]
-        max_dy = self.page_size[1] - (self._location_on_page[1] + self.screen_size[1])
+        min_dx = -(self.page_size[0] - (self._location_on_page[0] + self.screen_size[0]))
+        max_dx = 0 - self._location_on_page[0]
+        min_dy = -(self.page_size[1] - (self._location_on_page[1] + self.screen_size[1]))
+        max_dy = 0 - self._location_on_page[1]
         dx = min(dx, max_dx) if dx > 0 else max(dx, min_dx)
         dy = min(dy, max_dy) if dy > 0 else max(dy, min_dy)
 
