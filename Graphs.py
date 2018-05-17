@@ -107,6 +107,12 @@ class Graph(Drawables.Drawable):
         width = self._plot["width"]
         height = self._plot["height"]
 
+        # Reset the drawables
+        self._drawables["x_ticks"] = []
+        self._drawables["x_numbers"] = []
+        self._drawables["y_ticks"] = []
+        self._drawables["y_numbers"] = []
+
         # Figure out the axes
         self._axis_value_calculate()
         self._drawables["x_axis"] = Drawables.Line(plot_x, self._axis["x_axis_y"], width, 0, self._plot["fg_color"])
@@ -148,7 +154,7 @@ class Graph(Drawables.Drawable):
             ticks_values.extend([i * interval for i in range(int(num_ticks_positive) + 1)])
         ticks_values = list(set(ticks_values))
         if xory == 0:
-            ticks = [self._datum_position(ticks_value,0)[xory] for ticks_value in ticks_values]
+            ticks = [self._datum_position(ticks_value, 0)[xory] for ticks_value in ticks_values]
         else:
             ticks = [self._datum_position(0, ticks_value)[xory] for ticks_value in ticks_values]
         return ticks, ticks_values
@@ -387,14 +393,16 @@ class Graph(Drawables.Drawable):
         """
         assert isinstance(x_value, int) or isinstance(x_value, float)
         assert isinstance(y_value, int) or isinstance(y_value, float)
-        x = self._axis["y_axis_x"] + x_value * (self._plot["width"] / abs(self._axis["x_max"] - self._axis["x_min"]))
-        y = self._axis["x_axis_y"] - y_value * (self._plot["height"] / abs(self._axis["y_max"] - self._axis["y_min"]))
 
-        if x < self.x + self._plot["offset_x"] or x > self.x + self._plot["offset_x"] + self._plot["width"] or \
-                y < self.y + self._plot["offset_y"] or y > self.y + self._plot["offset_y"] + self._plot["height"]:
-            return None, None
+        x = None
+        if self._axis["x_min"] <= x_value <= self._axis["x_max"]:
+            x = int(self._axis["y_axis_x"] + x_value * (self._plot["width"] / abs(self._axis["x_max"] - self._axis["x_min"])))
 
-        return int(x), int(y)
+        y = None
+        if self._axis["y_min"] <= y_value <= self._axis["y_max"]:
+            y = int(self._axis["x_axis_y"] - y_value * (self._plot["height"] / abs(self._axis["y_max"] - self._axis["y_min"])))
+
+        return x, y
 
     def _axis_value_calculate(self):
         """
