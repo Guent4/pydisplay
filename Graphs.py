@@ -1,5 +1,6 @@
 import collections
 import inspect
+import math
 import os
 import stat
 import threading
@@ -322,7 +323,7 @@ class Graph(Drawables.Drawable):
     def add_datum(self, dataset_name, x_value, y_value):
         """
         Add a new data point.
-        :param dataset_name: The dataset this data point belongs to
+        :param dataset_name: The dataset this data point belongs to; if dataset name doesn't exist, create new dataset
         :param x_value: The x value
         :param y_value: The y value
         :return: None
@@ -576,7 +577,7 @@ class Bar(Graph):
         Add a new dataset with its own custom color
         :param name: Name of the dataset (must be unique)
         :param x_data: Not necessary!
-        :param y_data: List of y data values (must have same length as the set number of columns
+        :param y_data: List of y data values (must have same length as the set number of columns)
         :param color: Color scheme for this dataset
         :return: None
         """
@@ -614,15 +615,94 @@ class Bar(Graph):
 
 
 class Histogram(Graph):
-    def __init__(self, x, y, width, height):
+    def __init__(self, x, y, width, height, bins, left_inclusive=True, column_width=0.8):
         """
-        Create a histogram plot.
+        Create a bar graph.
         :param x: The x coordinate of the top left corner of the graph
         :param y: The y coordinate of the top left corner of the graph
         :param width: The width of the graph
         :param height: The height of the graph
+        :param bins: List of length 2 tuple/list defining the bins
+        :param left_inclusive: Lower value in each bin is inclusive?  If true, then right side is exclusive; if false,
+                    then right side is inclusive
+        :param column_width: Each bar gets a maximum width; 0.8 means each bar takes up 80% of that maximum width; must
+                    be > 0 and <= 1.0
         """
-        super(Histogram, self).__init__(x, y, width, height)
+        super(Graph, self).__init__(x, y, width, height)
+
+        assert isinstance(bins, list) and len(bins) > 0, \
+            all([(isinstance(b, list) or isinstance(b, tuple)) and len(b) == 2 and b[0] < b[1] for b in bins])
+        assert column_width is None or (isinstance(column_width, float) and 0 < column_width <= 1)
+
+        self._plot = {"x": 0, "y": 0, "width": 0, "height": 0, "bg_color": None, "fg_color": None}
+        self._axis = {"x_min": 0, "x_max": len(bins), "x_interval": 1, "y_min": 0, "y_max": 14, "y_interval": 2}
+        self._drawables = {"title": None, "x_label": None, "y_label": None, "x_axis": None, "y_axis": None,
+                           "x_ticks": [], "x_numbers": [], "y_ticks": [], "y_numbers": []}
+        self._bins = {"bins": bins, "left_inclusive": left_inclusive, "column_width": column_width}
+
+        self.create_plot()
+
+        self.datasets = collections.OrderedDict()
+        self.fifo_sources = []
+
+    def set_bounds(self, x_min=None, x_max=None, x_interval=None, y_min=None, y_max=None, y_interval=None):
+        """
+        Refer to the documentation for Graph.set_bounds.  Note that for histograms, x_min, x_max, x_interval, and y_min
+        cannot be manually changed.
+        :param x_min: Not used!
+        :param x_max: Not used!
+        :param x_interval: Not used!
+        :param y_min: Not used!
+        :param y_max: Maximum y value (must be greater than 0)
+        :param y_interval: Amount between tick marks on y axis (must be greater than 0)
+        :return: None
+        """
+        super(Histogram, self).set_bounds(y_max=y_max, y_interval=y_interval)
+
+    def add_dataset(self, name, x_data, y_data, color=Colors.GREEN):
+        """
+        Add a new dataset with its own custom color
+        :param name: Name of the dataset (must be unique)
+        :param x_data: List of x data values
+        :param y_data: Not used!
+        :param color: Color scheme for this dataset
+        :return: None
+        """
+        assert isinstance(name, str) and name not in self.datasets
+        assert isinstance(x_data, list) and all([isinstance(x, int) or isinstance(x, float) for x in x_data])
+
+        ys = [0] * len(self._bins["bins"])
+        for x in x_data:
+            for i, bin in enumerate(self._bins["bins"]):
+                if self._bins["left_inclusive"] and bin[0] <= x < bin[1]:
+                    ys[i] += 1
+                elif not self._bins["left_inclusive"] and bin[0] < x <= bin[1]:
+                    ys[i] += 1
+        self.datasets[name] = {"color": color, "xs": x_data, "ys": ys}
+
+    def add_datum(self, dataset_name, x_value, y_value):
+        """
+        Add a new data point.
+        :param dataset_name: The dataset this data point belongs to; if dataset name doesn't exist, create new dataset
+        :param x_value: The x value
+        :param y_value: Not used!
+        :return: None
+        """
+        if dataset_name in self.datasets:
+            xs = self.datasets[dataset_name]["xs"]
+            ys = self.datasets[dataset_name]["ys"]
+        else:
+            xs = []
+            ys = [0] * len(self._bins["bins"])
+
+        for i, bin in enumerate(self._bins["bins"]):
+            if self._bins["left_inclusive"] and bin[0] <= x_value < bin[1]:
+                ys[i] += 1
+            elif not self._bins["left_inclusive"] and bin[0] < x_value <= bin[1]:
+                ys[i] += 1
+
+        xs.append(x_value)
+        self.datasets[dataset_name] = {"color": Colors.GREEN, "xs": xs, "ys": ys}
 
     def draw(self, surface):
         """
@@ -633,12 +713,29 @@ class Histogram(Graph):
         super().draw(surface)
 
         # Draw datapoints
-        for dataset_name in self.datasets:
+        one_side = (self._plot["width"] / abs(self._axis["x_max"] - self._axis["x_min"])) * self._bins["column_width"] * 0.5
+        each_width = one_side * 2 / len(self.datasets)
+        for i, dataset_name in enumerate(self.datasets):
             color = self.datasets[dataset_name]["color"]
-            data_x = self.datasets[dataset_name]["xs"]
+            data_x = list(map(lambda x: x + 0.5, range(len(self._bins["bins"]))))
             data_y = self.datasets[dataset_name]["ys"]
 
             for x_value, y_value in zip(data_x, data_y):
-                x, y = self._datum_position(x_value, y_value)
-                rect = (x - self.x_tick_distance/ 4, y, self.x_tick_distance / 2, y_value * self.y_tick_distance / 2)
-                pygame.draw.rect(surface,color,rect)
+                x, y = self._datum_position(x_value, max(min(y_value, self._axis["y_max"]), self._axis["y_min"]))
+                rect = (x - one_side + each_width * i, self._axis["x_axis_y"], each_width, y - self._axis["x_axis_y"])
+                pygame.draw.rect(surface, color, rect)
+
+    @staticmethod
+    def generate_bins(bin_min, bin_max, bin_size):
+        """
+        Generates a list of tuples that define consecutive bins to be passed into the __init__ if Histogram
+        :param bin_min: Miniumum value to consider
+        :param bin_max: Maximum value to consider
+        :param bin_size: How wide are the bins?
+        :return: A list of tuples defining consecutive bins
+        """
+        assert isinstance(bin_min, int) or isinstance(bin_min, float)
+        assert isinstance(bin_max, int) or isinstance(bin_max, float) and bin_max > bin_min
+        assert isinstance(bin_size, int) or isinstance(bin_size, float) and bin_size > 0
+
+        return [(x * bin_size, (x + 1) * bin_size) for x in range(math.ceil(float(bin_max - bin_min) / bin_size))]

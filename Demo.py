@@ -1,4 +1,5 @@
 import argparse
+import random
 
 import Chart
 import Colors
@@ -20,7 +21,7 @@ class ScatterDemo(Pages.Page):
         self.scatter.set_x_label("x axis")
         self.scatter.set_y_label("y axis")
         self.scatter.add_dataset("test", [0, 1, 2, 3, -1, -2, -3, -11, -10], [0, 1, 2, 3, -1, -2, -3, -11, -6])
-        # self.scatter.setup_new_data_source("test", ScatterDemo._new_data_from_fifo)
+        self.scatter.setup_new_data_source("testScatter", ScatterDemo._new_data_from_fifo)
 
         self._drawables.append(self.scatter)
 
@@ -43,7 +44,6 @@ class BarDemo(Pages.Page):
         self.bar.set_y_label("y axis")
         self.bar.add_dataset("test1", None, [0, 1, 2, 3, -1, -2, -10], color=Colors.BLUE)
         self.bar.add_dataset("test2", None, [-10, 0, 1, 2, 3, -1, -2], color=Colors.GREEN)
-        # self.bar.setup_new_data_source("test", ScatterDemo._new_data_from_fifo)
 
         self._drawables.append(self.bar)
 
@@ -53,6 +53,31 @@ class BarDemo(Pages.Page):
         print("New data from {}: '{}'".format(fifo_source, data))
         x_value, y_value = list(map(float, data.split(" ")))
         graph.add_datum("test", x_value, y_value)
+
+
+class HistogramDemo(Pages.Page):
+    def __init__(self, pydisplay, event_handler):
+        page_size = (Constants.PI_TFT_SCREEN_SIZE[0], Constants.PI_TFT_SCREEN_SIZE[1] - Pages.PageManager.SWITCHER_HEIGHT)
+        super().__init__(pydisplay, event_handler, "Hist", page_size, Colors.BLACK)
+
+        options = [x + 0.5 for x in range(6)]
+
+        self.hist = Graphs.Histogram(0, 0, *self.page_size, Graphs.Histogram.generate_bins(0, 7, 1))
+        self.hist.set_title("TEST")
+        self.hist.set_x_label("x axis")
+        self.hist.set_y_label("y axis")
+        self.hist.add_dataset("test1", [random.choice(options) for _ in range(30)], None, color=Colors.BLUE)
+        self.hist.add_dataset("test2", [random.choice(options) for _ in range(30)], None, color=Colors.GREEN)
+        self.hist.setup_new_data_source("testHist", HistogramDemo._new_data_from_fifo)
+
+        self._drawables.append(self.hist)
+
+    @staticmethod
+    def _new_data_from_fifo(graph, fifo_source, data):
+        assert isinstance(graph, Graphs.Graph)
+        print("New data from {}: '{}'".format(fifo_source, data))
+        x_value = float(data)
+        graph.add_datum("test", x_value, None)
 
 
 class LineDemo(Pages.Page):
@@ -105,14 +130,14 @@ class ButtonsTextDemo(Pages.Page):
 
 class ChartDemo(Pages.Page):
     def __init__(self, pydisplay, event_handler):
-        page_size = (Constants.PI_TFT_SCREEN_SIZE[0], Constants.PI_TFT_SCREEN_SIZE[1] - Pages.PageManager.SWITCHER_HEIGHT)
+        page_size = (Constants.PI_TFT_SCREEN_SIZE[0], 500)
         super().__init__(pydisplay, event_handler, "Chart", page_size, Colors.BLACK)
 
         self.chart = Chart.Chart(0, 0, *page_size)
         self.chart.add_dataset("test1", [0, 1, 2, 3, -1, -2, -3])
         self.chart.add_dataset("test2", [0, 1, 2, 3, -1, -2, -3])
         self.chart.add_sorting_scheme(Chart.Sorting.OTHER, "test1", ChartDemo._compare)
-        # self.chart.setup_new_data_source("test", ChartDemo._new_data_from_fifo)
+        self.chart.setup_new_data_source("testChart", ChartDemo._new_data_from_fifo)
 
         self._drawables.append(self.chart)
 
@@ -136,8 +161,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    page_classes = [BarDemo, LineDemo, ScatterDemo, ChartDemo, ButtonsTextDemo]
-    page_class_args = [[], [], [], [], []]
+    page_classes = [HistogramDemo, BarDemo, LineDemo, ScatterDemo, ChartDemo, ButtonsTextDemo]
+    page_class_args = [[], [], [], [], [], []]
     pydisplay = PyDisplay.PyDisplay(not args.not_on_pitft, not args.disable_touchscreen, not args.disable_button)
     pydisplay.setup_pages(page_classes, page_class_args, Pages.PageManager.SWITCHER_LOCATIONS["BOTTOM"])
     pydisplay.run()

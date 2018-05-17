@@ -238,7 +238,7 @@ class Chart(Drawables.Drawable):
             dataset["data"].append(value)
             dataset["insertion_order"].append(max(dataset["insertion_order"]) + 1)
             data_text = Drawables.Text(x_values[dataset["data_align_x"]], y_value, dataset["formatting"].format(value),
-                                       dataset["data_font_size"], fg_color=dataset["fg_color"],
+                                       dataset["data_font_size"], fg_color=dataset["font_color"],
                                        align_x=dataset["data_align_x"], align_y=Drawables.Text.ALIGN_Y_CENTER)
             self._drawables["data"][dataset_name].append(data_text)
 
