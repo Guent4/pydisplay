@@ -124,8 +124,7 @@ class ButtonsTextDemo(Pages.Page):
         print(event.pin)
         if event.pin != 27:
             return
-
-        print("Button 27 pressed for {}!".format(event.duration))
+        self._pydisplay.exit()
 
 
 class ChartDemo(Pages.Page):
