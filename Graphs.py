@@ -256,7 +256,8 @@ class Graph(Drawables.Drawable):
     def add_dataset(self, name, x_data, y_data, color=Colors.GREEN):
         """
         Add a new dataset with its own custom color
-        :param name: Name of the dataset (must be unique)
+        :param name: Name of the dataset (each dataset must be unique).  If name already exists in dataset, then dataset
+                    is updated.
         :param x_data: List of x data values
         :param y_data: List of y data values
         :param color: Color scheme for this dataset
@@ -280,6 +281,16 @@ class Graph(Drawables.Drawable):
             return True
         else:
             return False
+
+    def get_dataset(self, name):
+        """
+        Get data for a dataset.
+        :param name: Name of the dataset
+        :return: A tuple containing the x data, y data, and color
+        """
+        assert isinstance(name, str) and name in self.datasets
+
+        return self.datasets[name]["xs"], self.datasets[name]["ys"], self.datasets[name]["color"]
 
     def add_datum(self, dataset_name, x_value, y_value):
         """
