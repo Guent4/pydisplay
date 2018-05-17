@@ -37,11 +37,11 @@ class BarDemo(Pages.Page):
         page_size = (Constants.PI_TFT_SCREEN_SIZE[0], Constants.PI_TFT_SCREEN_SIZE[1] - Pages.PageManager.SWITCHER_HEIGHT)
         super().__init__(pydisplay, event_handler, "Bar", page_size, Colors.BLACK)
 
-        self.bar = Graphs.Bar(0, 0, *self.page_size)
+        self.bar = Graphs.Bar(0, 0, *self.page_size, num_columns=7)
         self.bar.set_title("TEST")
         self.bar.set_x_label("x axis")
         self.bar.set_y_label("y axis")
-        self.bar.add_dataset("test", [0, 1, 2, 3, -1, -2, -3], [0, 1, 2, 3, -1, -2, -3], color=Colors.BLUE)
+        self.bar.add_dataset("test", None, [0, 1, 2, 3, -1, -2, -10], color=Colors.BLUE)
         # self.bar.setup_new_data_source("test", ScatterDemo._new_data_from_fifo)
 
         self._drawables.append(self.bar)
@@ -63,14 +63,18 @@ class LineDemo(Pages.Page):
         self.line.set_title("TEST")
         self.line.set_x_label("x axis")
         self.line.set_y_label("y axis")
-        self.line.add_dataset("test", *self.line.generate_ys_from_function(LineDemo._x_to_y))
+        self.line.add_dataset("linear", *self.line.generate_ys_from_function(LineDemo._x_to_y_linear))
+        self.line.add_dataset("quadratic", *self.line.generate_ys_from_function(LineDemo._x_to_y_quadratic))
 
         self._drawables.append(self.line)
 
     @staticmethod
-    def _x_to_y(x):
+    def _x_to_y_linear(x):
         return x / 2
 
+    @staticmethod
+    def _x_to_y_quadratic(x):
+        return x ** 2
 
 
 class ButtonsTextDemo(Pages.Page):

@@ -491,15 +491,65 @@ class Line(Graph):
 
 
 class Bar(Graph):
-    def __init__(self, x, y, width, height):
+    def __init__(self, x, y, width, height, num_columns, column_width=0.8):
         """
         Create a bar graph.
         :param x: The x coordinate of the top left corner of the graph
         :param y: The y coordinate of the top left corner of the graph
         :param width: The width of the graph
         :param height: The height of the graph
+        :param num_columns: Number of columns that will be displayed (cannot be changed later)
+        :param column_width: Each bar gets a maximum width; 0.8 means each bar takes up 80% of that maximum width; must
+                    be > 0 and <= 1.0
         """
-        super(Bar, self).__init__(x, y, width, height)
+        super(Graph, self).__init__(x, y, width, height)
+
+        assert num_columns is None or (isinstance(num_columns, int) and num_columns > 0, num_columns)
+        assert column_width is None or (isinstance(column_width, float) and 0 < column_width <= 1)
+
+        self._plot = {"x": 0, "y": 0, "width": 0, "height": 0, "bg_color": None, "fg_color": None}
+        self._axis = {"x_min": 0, "x_max": num_columns, "x_interval": 1, "y_min": -7, "y_max": 7, "y_interval": 2}
+        self._drawables = {"title": None, "x_label": None, "y_label": None, "x_axis": None, "y_axis": None,
+                           "x_ticks": [], "x_numbers": [], "y_ticks": [], "y_numbers": []}
+        self._bars = {"num_columns": num_columns, "column_width": column_width}
+        self._can_set_bars = True
+
+        self.create_plot()
+
+        self.datasets = collections.OrderedDict()
+        self.fifo_sources = []
+
+    def set_bounds(self, x_min=None, x_max=None, x_interval=None, y_min=None, y_max=None, y_interval=None):
+        """
+        Refer to the documentation for Graph.set_bounds.  Note that for Bar graphs, x_min, x_max, and x_interval cannot
+        be manually changed.
+        :param x_min: Not used!
+        :param x_max: Not used!
+        :param x_interval: Not used!
+        :param y_min: Minimum y value
+        :param y_max: Maximum y value (must be greater than y_min)
+        :param y_interval: Amount between tick marks on y axis (must be greater than 0)
+        :return: None
+        """
+        super(Bar, self).set_bounds(y_min=y_min, y_max=y_max, y_interval=y_interval)
+
+    def add_dataset(self, name, x_data, y_data, color=Colors.GREEN):
+        """
+        Add a new dataset with its own custom color
+        :param name: Name of the dataset (must be unique)
+        :param x_data: Not necessary!
+        :param y_data: List of y data values (must have same length as the set number of columns
+        :param color: Color scheme for this dataset
+        :return: None
+        """
+        assert isinstance(name, str) and name not in self.datasets
+        assert isinstance(y_data, list) and all([isinstance(y, int) or isinstance(y, float) for y in y_data])
+        assert len(y_data) == self._bars["num_columns"]
+
+        self.datasets[name] = {"color": color, "ys": y_data}
+
+        self._can_set_bars = False
+
 
     def draw(self, surface):
         """
@@ -510,15 +560,16 @@ class Bar(Graph):
         super().draw(surface)
 
         # Draw datapoints
+        one_side = (self._plot["width"] / abs(self._axis["x_max"] - self._axis["x_min"])) * self._bars["column_width"] * 0.5
         for dataset_name in self.datasets:
             color = self.datasets[dataset_name]["color"]
-            data_x = self.datasets[dataset_name]["xs"]
+            data_x = list(map(lambda x: x + 0.5, range(self._bars["num_columns"])))
             data_y = self.datasets[dataset_name]["ys"]
 
             for x_value, y_value in zip(data_x, data_y):
-                x, y = self._datum_position(x_value, y_value)
-                rect = (x - 8/2, y, 8, y_value * 11)
-                pygame.draw.rect(surface,color,rect)
+                x, y = self._datum_position(x_value, max(min(y_value, self._axis["y_max"]), self._axis["y_min"]))
+                rect = (x - one_side, self._axis["x_axis_y"], one_side * 2, y - self._axis["x_axis_y"])
+                pygame.draw.rect(surface, color, rect)
 
 
 class Histogram(Graph):
